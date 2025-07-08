@@ -10,6 +10,7 @@ class Pong:
         self.window_height = window_height
 
         pygame.init()
+        pygame.display.set_caption("Pong")
 
         self.clock = pygame.time.Clock()
         self.screen = pygame.display.set_mode((window_width, window_height))
@@ -40,6 +41,13 @@ class Pong:
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
+            
+            keys = pygame.key.get_pressed()
+
+            if keys[pygame.K_k]:
+                self.player_1_paddle.move(1)
+            elif keys[pygame.K_j]:
+                self.player_1_paddle.move(0)
 
 
             self.step()

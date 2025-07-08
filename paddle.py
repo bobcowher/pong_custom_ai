@@ -10,14 +10,25 @@ class Paddle:
         self.height = height
         self.width = width
         self.rect = pygame.Rect(x, y, self.width, self.height)
-        
+        self.speed = 10
+
         if(player == 1):
             self.paddle_color = (50, 205, 50)
         elif(player == 2):
-            self.paddle_color = (255, 180, 50)
+            self.paddle_color = (138, 43, 226)
         else:
             raise ValueError("Invalid player provided in the Paddle class. Player options are 1 and 2")
 
     def draw(self, screen):
         pygame.draw.rect(screen, self.paddle_color,(self.rect.x, self.rect.y, self.width, self.height))
+
+    def move(self, direction):
+        if(direction == 0):
+            self.y += self.speed
+        elif(direction == 1):
+            self.y -= self.speed
+
+        self.rect.topleft = (self.x, self.y)
+
+            
 
