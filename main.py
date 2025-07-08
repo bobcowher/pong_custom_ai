@@ -1,3 +1,7 @@
 from game import Pong
 
-print("Hello World!")
+env = Pong()
+
+env.game_loop()
+
+
