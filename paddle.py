@@ -4,7 +4,7 @@ import math
 
 class Paddle:
 
-    def __init__(self, x, y, player, width=20, height=120):
+    def __init__(self, x, y, player_color, width=20, height=120):
         self.x = x
         self.y = y
         self.height = height
@@ -12,15 +12,12 @@ class Paddle:
         self.rect = pygame.Rect(x, y, self.width, self.height)
         self.speed = 10
 
-        if(player == 1):
-            self.paddle_color = (50, 205, 50)
-        elif(player == 2):
-            self.paddle_color = (138, 43, 226)
-        else:
-            raise ValueError("Invalid player provided in the Paddle class. Player options are 1 and 2")
+        self.paddle_color = player_color
+
 
     def draw(self, screen):
         pygame.draw.rect(screen, self.paddle_color,(self.rect.x, self.rect.y, self.width, self.height))
+
 
     def move(self, direction):
         if(direction == 0):

@@ -21,15 +21,18 @@ class Pong:
         self.paddle_height = 120
         self.paddle_width = 20
        
+        self.player_1_color = (50, 205, 50)
+        self.player_2_color = (138, 43, 226)
+
         self.player_1_paddle = Paddle(x=window_width - 2 * (window_width / 64), 
                                       y=(window_height / 2) - (self.paddle_height / 2), 
-                                      player=1, 
+                                      player_color=self.player_1_color, 
                                       height=self.paddle_height,
                                       width=self.paddle_width); 
         
         self.player_2_paddle = Paddle(x=(window_width / 64), 
                                       y=(window_height / 2) - (self.paddle_height / 2), 
-                                      player=2, 
+                                      player_color=self.player_2_color, 
                                       height=self.paddle_height,
                                       width=self.paddle_width); 
 
