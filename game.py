@@ -1,6 +1,6 @@
 import pygame
 import sys
-from assets import Paddle
+from assets import Paddle, Ball
 
 class Pong:
 
@@ -38,6 +38,14 @@ class Pong:
                                       width=self.paddle_width,
                                       window_height=window_height); 
 
+        self.ball = Ball(x=(window_width / 2),
+                         y=(window_height / 2),
+                         window_height=window_height,
+                         height=20,
+                         width=20,
+                         player_1_paddle=self.player_1_paddle,
+                         player_2_paddle=self.player_2_paddle)
+
 
     def game_loop(self):
         while(True):
@@ -55,7 +63,7 @@ class Pong:
                 self.player_1_paddle.move(0)
             elif keys[pygame.K_w]:
                 self.player_2_paddle.move(1)
-            elif keys[pygame.K_d]:
+            elif keys[pygame.K_s]:
                 self.player_2_paddle.move(0)
 
 
@@ -70,6 +78,8 @@ class Pong:
         self.fill_background()
         self.player_1_paddle.draw(screen=self.screen)
         self.player_2_paddle.draw(screen=self.screen)
+        self.ball.move()
+        self.ball.draw(screen=self.screen)
         self.clock.tick(self.fps)
         pygame.display.flip()
 
