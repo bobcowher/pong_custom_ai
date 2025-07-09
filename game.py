@@ -1,6 +1,6 @@
 import pygame
 import sys
-from paddle import Paddle
+from assets import Paddle
 
 class Pong:
 
@@ -28,13 +28,15 @@ class Pong:
                                       y=(window_height / 2) - (self.paddle_height / 2), 
                                       player_color=self.player_1_color, 
                                       height=self.paddle_height,
-                                      width=self.paddle_width); 
+                                      width=self.paddle_width,
+                                      window_height=window_height); 
         
         self.player_2_paddle = Paddle(x=(window_width / 64), 
                                       y=(window_height / 2) - (self.paddle_height / 2), 
                                       player_color=self.player_2_color, 
                                       height=self.paddle_height,
-                                      width=self.paddle_width); 
+                                      width=self.paddle_width,
+                                      window_height=window_height); 
 
 
     def game_loop(self):
@@ -51,6 +53,10 @@ class Pong:
                 self.player_1_paddle.move(1)
             elif keys[pygame.K_j]:
                 self.player_1_paddle.move(0)
+            elif keys[pygame.K_w]:
+                self.player_2_paddle.move(1)
+            elif keys[pygame.K_d]:
+                self.player_2_paddle.move(0)
 
 
             self.step()
