@@ -24,9 +24,14 @@ class Pong:
        
         self.player_1_color = (50, 205, 50)
         self.player_2_color = (138, 43, 226)
+        
+        self.font = pygame.font.SysFont(None, 70)
 
         self.player1 = player1
         self.player2 = player2
+
+        self.player_1_score = 0
+        self.player_2_score = 0
 
         self.player_1_paddle = Paddle(x=window_width - 2 * (window_width / 64), 
                                       y=(window_height / 2) - (self.paddle_height / 2), 
@@ -94,7 +99,7 @@ class Pong:
         elif random.random() <= random_target:
             next_move = random.randint(0, 2)
             
-            for move in range(rqueue):
+            for i in range(rqueue):
                 self.bot_move_queue.append(next_move)
         else:
             if(self.ball.vy > 0):
@@ -108,6 +113,13 @@ class Pong:
 
     def fill_background(self):
         self.screen.fill(self.background_color)
+
+        player_1_score_surface = self.font.render(f'Score: {self.player_1_score}', True, self.player_1_color)
+        self.screen.blit(player_1_score_surface, ((self.window_width / 2) + 20, 10))
+        
+        player_2_score_surface = self.font.render(f'Score: {self.player_2_score}', True, self.player_2_color)
+        self.screen.blit(player_2_score_surface, ((self.window_width / 2) - player_2_score_surface.get_width() - 20, 10))
+
 
 
     def step(self):
