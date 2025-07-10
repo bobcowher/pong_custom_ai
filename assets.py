@@ -1,7 +1,9 @@
+from random import random
 from re import error
 import pygame
 import math
 import numpy as np
+import random
 
 class Paddle:
 
@@ -42,18 +44,24 @@ class Paddle:
             
 class Ball:
 
-    def __init__(self, x, y, window_height, player_1_paddle, player_2_paddle, width=10, height=10):
-        self.x = x
-        self.y = y
+    def __init__(self, window_height, window_width, player_1_paddle, player_2_paddle, width=10, height=10):
         self.height = height
         self.width = width
         self.window_height = window_height
+        self.window_width = window_width
         self.player_1_paddle = player_1_paddle
         self.player_2_paddle = player_2_paddle
-        self.rect = pygame.Rect(x, y, width, height)
-        self.vx = 3
-        self.vy = 10
         self.ball_color = (255, 255, 255)
+
+        self.spawn()
+
+
+    def spawn(self):
+        self.x = self.window_height / 2
+        self.y = self.window_width / 2
+        self.vx = random.randint(5,10)
+        self.vy = random.randint(3,10)
+        self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
 
 
     def generate_new_rect(self):
@@ -63,7 +71,6 @@ class Ball:
         new_rect = pygame.Rect(new_x, new_y, self.width, self.height)
 
         return new_x, new_y, new_rect
-
 
 
     def move(self):
@@ -92,6 +99,9 @@ class Ball:
 
     def draw(self, screen):
         pygame.draw.rect(screen, self.ball_color,(self.rect.x, self.rect.y, self.width, self.height))
+
+
+
 
 
 

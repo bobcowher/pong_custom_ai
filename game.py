@@ -1,5 +1,7 @@
 import pygame
 import sys
+
+from pygame.cursors import ball
 from assets import Paddle, Ball
 import random
 
@@ -47,9 +49,8 @@ class Pong:
                                       width=self.paddle_width,
                                       window_height=window_height); 
 
-        self.ball = Ball(x=(window_width / 2),
-                         y=(window_height / 2),
-                         window_height=window_height,
+        self.ball = Ball(window_height=window_height,
+                         window_width=window_width,
                          height=20,
                          width=20,
                          player_1_paddle=self.player_1_paddle,
@@ -121,7 +122,6 @@ class Pong:
         self.screen.blit(player_2_score_surface, ((self.window_width / 2) - player_2_score_surface.get_width() - 20, 10))
 
 
-
     def step(self):
         self.fill_background()
         self.player_1_paddle.draw(screen=self.screen)
@@ -130,5 +130,14 @@ class Pong:
         self.ball.draw(screen=self.screen)
         self.clock.tick(self.fps)
         pygame.display.flip()
+
+        if(self.ball.x < 0):
+            self.player_1_score += 1
+            self.ball.spawn()
+        elif(self.ball.x > self.window_width):
+            self.player_2_score += 1
+            self.ball.spawn()
+
+
 
 
