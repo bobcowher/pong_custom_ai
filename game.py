@@ -37,7 +37,7 @@ class Pong:
         self.player_1_score = 0
         self.player_2_score = 0
 
-        self.top_score = 5
+        self.top_score = 20 
 
         self.player_1_paddle = Paddle(x=window_width - 2 * (window_width / 64), 
                                       y=(window_height / 2) - (self.paddle_height / 2), 
