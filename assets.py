@@ -86,7 +86,7 @@ class Ball:
 
         for paddle in [self.player_1_paddle, self.player_2_paddle]:
                if(new_rect.colliderect(paddle)):
-                    self.vx = self.vx * -1
+                    self.vx = (self.vx * 1.1) * -1 # Invert direction and speed up the ball slightly
         
         new_x, new_y, new_rect = self.generate_new_rect()
 

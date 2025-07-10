@@ -4,6 +4,7 @@ import sys
 from pygame.cursors import ball
 from assets import Paddle, Ball
 import random
+import time
 
 class Pong:
 
@@ -28,12 +29,15 @@ class Pong:
         self.player_2_color = (138, 43, 226)
         
         self.font = pygame.font.SysFont(None, 70)
+        self.announcement_font = pygame.font.SysFont(None, 150)
 
         self.player1 = player1
         self.player2 = player2
 
         self.player_1_score = 0
         self.player_2_score = 0
+
+        self.top_score = 5
 
         self.player_1_paddle = Paddle(x=window_width - 2 * (window_width / 64), 
                                       y=(window_height / 2) - (self.paddle_height / 2), 
@@ -111,6 +115,28 @@ class Pong:
         return self.bot_move_queue.pop(0)       
 
 
+    def game_over(self):
+        # Render the "You Died" message
+        if(self.player_1_score >= self.top_score):
+            game_over_surface = self.announcement_font.render('Player 1 Won', True, self.player_1_color)
+        elif(self.player_2_score >= self.top_score):
+            game_over_surface = self.announcement_font.render('Player 2 Won', True, self.player_2_color)
+        
+        game_over_rect = game_over_surface.get_rect(center=(self.window_width // 2, self.window_height // 2))
+
+        # Blit the message to the screen
+        self.screen.blit(game_over_surface, game_over_rect)
+
+        # Update the display to show the message
+        pygame.display.flip()
+
+        self.done = True
+
+        time.sleep(10)
+
+        pygame.quit()
+        sys.exit()
+
 
     def fill_background(self):
         self.screen.fill(self.background_color)
@@ -138,6 +164,10 @@ class Pong:
             self.player_2_score += 1
             self.ball.spawn()
 
+
+        if(self.player_1_score >= self.top_score or 
+           self.player_2_score >= self.top_score):
+            self.game_over()
 
 
 
