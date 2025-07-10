@@ -1,10 +1,11 @@
 import pygame
 import sys
 from assets import Paddle, Ball
+import random
 
 class Pong:
 
-    def __init__(self, window_width=1280, window_height=960, fps=60):
+    def __init__(self, window_width=1280, window_height=960, fps=60, player1="human", player2="bot"):
         
         self.window_width = window_width
         self.window_height = window_height
@@ -23,6 +24,9 @@ class Pong:
        
         self.player_1_color = (50, 205, 50)
         self.player_2_color = (138, 43, 226)
+
+        self.player1 = player1
+        self.player2 = player2
 
         self.player_1_paddle = Paddle(x=window_width - 2 * (window_width / 64), 
                                       y=(window_height / 2) - (self.paddle_height / 2), 
@@ -46,6 +50,8 @@ class Pong:
                          player_1_paddle=self.player_1_paddle,
                          player_2_paddle=self.player_2_paddle)
 
+        self.bot_move_queue = []
+
 
     def game_loop(self):
         while(True):
@@ -57,17 +63,47 @@ class Pong:
             
             keys = pygame.key.get_pressed()
 
-            if keys[pygame.K_k]:
-                self.player_1_paddle.move(1)
-            elif keys[pygame.K_j]:
-                self.player_1_paddle.move(0)
-            elif keys[pygame.K_w]:
-                self.player_2_paddle.move(1)
-            elif keys[pygame.K_s]:
-                self.player_2_paddle.move(0)
+            if self.player1 == "human": 
+                if keys[pygame.K_k]:
+                    self.player_1_paddle.move(1)
+                elif keys[pygame.K_j]:
+                    self.player_1_paddle.move(2)
+            if self.player2 == "human":
+                if keys[pygame.K_w]:
+                    self.player_2_paddle.move(1)
+                elif keys[pygame.K_s]:
+                    self.player_2_paddle.move(2)
 
+            if self.player1 == "bot":
+                move = self.get_bot_move()
+                self.player_1_paddle.move(move)
+            if self.player2 == "bot":
+                move = self.get_bot_move()
+                self.player_2_paddle.move(move)
 
             self.step()
+
+
+    def get_bot_move(self):
+         
+        random_target = 0.05
+        rqueue = 5
+
+        if self.bot_move_queue.__len__() > 0:
+            pass 
+        elif random.random() <= random_target:
+            next_move = random.randint(0, 2)
+            
+            for move in range(rqueue):
+                self.bot_move_queue.append(next_move)
+        else:
+            if(self.ball.vy > 0):
+                self.bot_move_queue.append(2)
+            else:
+                self.bot_move_queue.append(1)
+
+        return self.bot_move_queue.pop(0)       
+
 
 
     def fill_background(self):

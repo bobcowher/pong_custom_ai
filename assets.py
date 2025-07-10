@@ -1,6 +1,7 @@
 from re import error
 import pygame
 import math
+import numpy as np
 
 class Paddle:
 
@@ -26,11 +27,11 @@ class Paddle:
         # Direction 0 is down, 1 is up. 
 
         if(direction == 0):
-            new_y = self.y + self.speed
+            return
         elif(direction == 1):
             new_y = self.y - self.speed
-
-        
+        elif(direction == 2):
+            new_y = self.y + self.speed
 
         if(0 <= new_y <= (self.window_height - self.height)):
             self.y = new_y
@@ -73,16 +74,12 @@ class Ball:
         new_x, new_y, new_rect = self.generate_new_rect()
 
         if(not (0 <= new_y <= (self.window_height - self.height))):
-            self.vy = self.vy * -1
-#            self.vx = self.vx * -1
-            collision = True
+            self.vy = np.clip(self.vy * -1, -20, 20)
 
 
         for paddle in [self.player_1_paddle, self.player_2_paddle]:
                if(new_rect.colliderect(paddle)):
-                    # self.vy = self.vy * -1
                     self.vx = self.vx * -1
-                    collision = True
         
         new_x, new_y, new_rect = self.generate_new_rect()
 
