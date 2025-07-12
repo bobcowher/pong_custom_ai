@@ -34,27 +34,32 @@ class Pong:
         self.player1 = player1
         self.player2 = player2
 
+        self.reset()
+
+
+    def reset(self):
+        
         self.player_1_score = 0
         self.player_2_score = 0
 
         self.top_score = 20 
 
-        self.player_1_paddle = Paddle(x=window_width - 2 * (window_width / 64), 
-                                      y=(window_height / 2) - (self.paddle_height / 2), 
+        self.player_1_paddle = Paddle(x=self.window_width - 2 * (self.window_width / 64), 
+                                      y=(self.window_height / 2) - (self.paddle_height / 2), 
                                       player_color=self.player_1_color, 
                                       height=self.paddle_height,
                                       width=self.paddle_width,
-                                      window_height=window_height); 
+                                      window_height=self.window_height); 
         
-        self.player_2_paddle = Paddle(x=(window_width / 64), 
-                                      y=(window_height / 2) - (self.paddle_height / 2), 
+        self.player_2_paddle = Paddle(x=(self.window_width / 64), 
+                                      y=(self.window_height / 2) - (self.paddle_height / 2), 
                                       player_color=self.player_2_color, 
                                       height=self.paddle_height,
                                       width=self.paddle_width,
-                                      window_height=window_height); 
+                                      window_height=self.window_height); 
 
-        self.ball = Ball(window_height=window_height,
-                         window_width=window_width,
+        self.ball = Ball(window_height=self.window_height,
+                         window_width=self.window_width,
                          height=20,
                          width=20,
                          player_1_paddle=self.player_1_paddle,
@@ -64,7 +69,12 @@ class Pong:
 
 
     def game_loop(self):
+        # Game loop for human players
+
         while(True):
+
+            player_1_action = 0
+            player_2_action = 0
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -75,23 +85,21 @@ class Pong:
 
             if self.player1 == "human": 
                 if keys[pygame.K_k]:
-                    self.player_1_paddle.move(1)
+                    player_1_action = 1
                 elif keys[pygame.K_j]:
-                    self.player_1_paddle.move(2)
+                    player_1_action = 2
             if self.player2 == "human":
                 if keys[pygame.K_w]:
-                    self.player_2_paddle.move(1)
+                    player_2_action = 1
                 elif keys[pygame.K_s]:
-                    self.player_2_paddle.move(2)
+                    player_2_action = 2
 
             if self.player1 == "bot":
-                move = self.get_bot_move()
-                self.player_1_paddle.move(move)
+                player_1_action = self.get_bot_move()
             if self.player2 == "bot":
-                move = self.get_bot_move()
-                self.player_2_paddle.move(move)
+                player_2_action = self.get_bot_move()
 
-            self.step()
+            self.step(player_1_action, player_2_action)
 
 
     def get_bot_move(self):
@@ -148,7 +156,14 @@ class Pong:
         self.screen.blit(player_2_score_surface, ((self.window_width / 2) - player_2_score_surface.get_width() - 20, 10))
 
 
-    def step(self):
+    def step(self, player_1_action, player_2_action):
+
+        player_1_reward = 0
+        player_2_reward = 0
+
+        self.player_1_paddle.move(player_1_action)
+        self.player_2_paddle.move(player_2_action)
+
         self.fill_background()
         self.player_1_paddle.draw(screen=self.screen)
         self.player_2_paddle.draw(screen=self.screen)
@@ -159,9 +174,11 @@ class Pong:
 
         if(self.ball.x < 0):
             self.player_1_score += 1
+            player_1_reward += 1
             self.ball.spawn()
         elif(self.ball.x > self.window_width):
             self.player_2_score += 1
+            player_2_reward += 1
             self.ball.spawn()
 
 
@@ -169,5 +186,7 @@ class Pong:
            self.player_2_score >= self.top_score):
             self.game_over()
 
+        
+        
 
 
