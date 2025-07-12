@@ -4,12 +4,19 @@ import sys
 from pygame.cursors import ball
 from assets import Paddle, Ball
 import random
+import os
 import time
+import numpy as np
+import cv2 
+import torch
+
 
 class Pong:
 
     def __init__(self, window_width=1280, window_height=960, fps=60, player1="human", player2="bot"):
-        
+       
+        # Players should be human, bot, or ai
+
         self.window_width = window_width
         self.window_height = window_height
 
@@ -33,6 +40,9 @@ class Pong:
 
         self.player1 = player1
         self.player2 = player2
+
+        if(player1 != "human"):
+            os.environ["SDL_VIDEODRIVER"] = "dummy"
 
         self.reset()
 
@@ -67,6 +77,8 @@ class Pong:
 
         self.bot_move_queue = []
 
+        return self._get_obs(), {}
+
 
     def game_loop(self):
         # Game loop for human players
@@ -100,6 +112,27 @@ class Pong:
                 player_2_action = self.get_bot_move()
 
             self.step(player_1_action, player_2_action)
+    
+
+    def _get_obs(self):
+
+        screen_array = pygame.surfarray.pixels3d(self.screen)
+
+        # Transpose to (height, width, channels)
+        screen_array = np.transpose(screen_array, (1, 0, 2))
+
+        # Resize to 128x128
+        downscaled_image = cv2.resize(screen_array, (128, 128), interpolation=cv2.INTER_NEAREST)
+
+        # Convert to grayscale
+        grayscale = cv2.cvtColor(downscaled_image, cv2.COLOR_RGB2GRAY)
+
+        # Convert to PyTorch tensor
+        observation = torch.from_numpy(grayscale).float().unsqueeze(0)
+
+        # observation = observation / 255 # Reducing to decimals at this point doesn't work with a uint 8 replay buffer. 
+
+        return observation
 
 
     def get_bot_move(self):
@@ -157,6 +190,9 @@ class Pong:
 
 
     def step(self, player_1_action, player_2_action):
+        
+        done = False
+        truncated = False
 
         player_1_reward = 0
         player_2_reward = 0
@@ -175,18 +211,27 @@ class Pong:
         if(self.ball.x < 0):
             self.player_1_score += 1
             player_1_reward += 1
+            player_2_reward -= 1
             self.ball.spawn()
         elif(self.ball.x > self.window_width):
             self.player_2_score += 1
             player_2_reward += 1
+            player_1_reward -= 1
             self.ball.spawn()
 
 
         if(self.player_1_score >= self.top_score or 
            self.player_2_score >= self.top_score):
-            self.game_over()
+            if self.player1 == "human":
+                self.game_over()
+            else:
+                done = True
+                truncated = True
 
-        
+        observation = self._get_obs() 
+        info = {}
+
+        return observation, player_1_reward, done, truncated, info       
         
 
 

@@ -1,8 +1,6 @@
 from agent import Agent
-import gymnasium as gym
-from gymnasium.wrappers import GrayscaleObservation, ResizeObservation 
-import ale_py
 import time
+from game import Pong
 
 episodes = 100
 max_episode_steps = 10000
@@ -24,11 +22,7 @@ hidden_layer = 128
 # Constants
 start_time = time.perf_counter()
 
-env = gym.make("ALE/Pong-v5", render_mode="rgb_array")
-
-env = ResizeObservation(env, (64, 64))
-
-env = GrayscaleObservation(env, keep_dim=True)
+env = Pong(player1="ai", player2="ai")
 
 
 summary_writer_suffix = f'dqn_lr={learning_rate}_hl={hidden_layer}_mse_loss_bs={batch_size}_double_dqn'
