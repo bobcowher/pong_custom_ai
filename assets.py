@@ -25,7 +25,7 @@ class Paddle:
 
 
     def move(self, direction):
-
+        assert 0 <= direction <= 3
         # Direction 0 is down, 1 is up. 
 
         if(direction == 0):

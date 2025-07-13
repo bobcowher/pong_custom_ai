@@ -45,7 +45,8 @@ class Agent():
 
 
     def process_observation(self, obs):
-        obs = torch.tensor(obs, dtype=torch.float32).permute(2,0,1)  
+        # obs = torch.tensor(obs, dtype=torch.float32).permute(2,0,1)  
+        obs = torch.tensor(obs, dtype=torch.float32)  
         return obs
 
 
@@ -73,7 +74,7 @@ class Agent():
 
             for i in range(self.step_repeat):
                 reward_temp = 0
-                next_obs, reward_temp, done, truncated, info = self.env.step(action=action)
+                next_obs, reward_temp, done, truncated, info = self.env.step(player_1_action=action)
 
                 reward += reward_temp
 
@@ -119,6 +120,7 @@ class Agent():
             obs, info = self.env.reset()
             obs = self.process_observation(obs)
 
+
             episode_steps = 0
 
             episode_start_time = time.time()
@@ -127,15 +129,17 @@ class Agent():
 
                 if random.random() < epsilon:
                     action = self.env.action_space.sample()
+                    print("Random action: ", action)
                 else:
                     q_values = self.model.forward(obs.unsqueeze(0).to(self.device))[0]
                     action = torch.argmax(q_values, dim=-1).item()
+                    print("Model selected action: ", action)
 
                 reward = 0
 
                 for i in range(self.step_repeat):
                     reward_temp = 0
-                    next_obs, reward_temp, done, truncated, info = self.env.step(action=action)
+                    next_obs, reward_temp, done, truncated, info = self.env.step(player_1_action=action)
 
                     reward += reward_temp
 

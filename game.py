@@ -9,9 +9,9 @@ import time
 import numpy as np
 import cv2 
 import torch
+import gymnasium as gym
 
-
-class Pong:
+class Pong(gym.Env):
 
     def __init__(self, window_width=1280, window_height=960, fps=60, player1="human", player2="bot"):
        
@@ -40,6 +40,7 @@ class Pong:
 
         self.player1 = player1
         self.player2 = player2
+        self.action_space = gym.spaces.Discrete(3)
 
         if(player1 != "human"):
             os.environ["SDL_VIDEODRIVER"] = "dummy"
@@ -189,8 +190,11 @@ class Pong:
         self.screen.blit(player_2_score_surface, ((self.window_width / 2) - player_2_score_surface.get_width() - 20, 10))
 
 
-    def step(self, player_1_action, player_2_action):
-        
+    def step(self, player_1_action=None, player_2_action=None):
+       
+        if(player_2_action is None):
+            player_2_action = self.get_bot_move()
+
         done = False
         truncated = False
 
