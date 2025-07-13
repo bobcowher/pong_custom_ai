@@ -129,11 +129,9 @@ class Agent():
 
                 if random.random() < epsilon:
                     action = self.env.action_space.sample()
-                    print("Random action: ", action)
                 else:
                     q_values = self.model.forward(obs.unsqueeze(0).to(self.device))[0]
                     action = torch.argmax(q_values, dim=-1).item()
-                    print("Model selected action: ", action)
 
                 reward = 0
 

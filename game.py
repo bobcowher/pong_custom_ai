@@ -13,12 +13,18 @@ import gymnasium as gym
 
 class Pong(gym.Env):
 
-    def __init__(self, window_width=1280, window_height=960, fps=60, player1="human", player2="bot"):
+    def __init__(self, window_width=1280, window_height=960, fps=60, player1="ai", player2="bot"):
        
         # Players should be human, bot, or ai
+        for p in [player1, player2]:
+            if p not in {"ai", "bot", "human"}:
+                raise ValueError(f"All players must be ai, bot, or human")
 
         self.window_width = window_width
         self.window_height = window_height
+        
+        if(player1 != "human"):
+            os.environ["SDL_VIDEODRIVER"] = "dummy"
 
         pygame.init()
         pygame.display.set_caption("Pong")
@@ -42,8 +48,6 @@ class Pong(gym.Env):
         self.player2 = player2
         self.action_space = gym.spaces.Discrete(3)
 
-        if(player1 != "human"):
-            os.environ["SDL_VIDEODRIVER"] = "dummy"
 
         self.reset()
 
@@ -209,7 +213,12 @@ class Pong(gym.Env):
         self.player_2_paddle.draw(screen=self.screen)
         self.ball.move()
         self.ball.draw(screen=self.screen)
-        self.clock.tick(self.fps)
+
+        if(self.player1 == "human" or self.player2 == "human"):
+            self.clock.tick(self.fps)
+        else:
+            self.clock.tick()
+
         pygame.display.flip()
 
         if(self.ball.x < 0):
