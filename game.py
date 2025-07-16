@@ -13,7 +13,7 @@ import gymnasium as gym
 
 class Pong(gym.Env):
 
-    def __init__(self, window_width=1280, window_height=960, fps=60, player1="ai", player2="bot", render_mode="rgbarray"):
+    def __init__(self, window_width=1280, window_height=960, fps=60, player1="ai", player2="bot", render_mode="rgbarray", step_repeat=4):
        
         # Players should be human, bot, or ai
         for p in [player1, player2]:
@@ -22,8 +22,11 @@ class Pong(gym.Env):
 
         self.window_width = window_width
         self.window_height = window_height
+        self.step_repeat = 4
+
+        self.render_mode = render_mode
         
-        if(render_mode == "human"):
+        if(self.render_mode != "human"):
             os.environ["SDL_VIDEODRIVER"] = "dummy"
 
         pygame.init()
@@ -150,8 +153,8 @@ class Pong(gym.Env):
         elif random.random() <= random_target:
             next_move = random.randint(0, 2)
             
-            for i in range(rqueue):
-                self.bot_move_queue.append(next_move)
+            # for i in range(rqueue):
+            self.bot_move_queue.append(next_move)
         else:
             if(self.ball.vy > 0):
                 self.bot_move_queue.append(2)
@@ -194,7 +197,23 @@ class Pong(gym.Env):
         self.screen.blit(player_2_score_surface, ((self.window_width / 2) - player_2_score_surface.get_width() - 20, 10))
 
 
+        
     def step(self, player_1_action=None, player_2_action=None):
+        total_player_1_reward = 0
+        
+        for i in range(self.step_repeat):
+            player_1_reward, done, truncated, info = self._step(player_1_action=player_1_action, player_2_action=player_2_action)
+            total_player_1_reward = total_player_1_reward + player_1_reward
+
+            if done:
+                break
+
+        observation = self._get_obs() 
+
+        return observation, total_player_1_reward, done, truncated, info
+
+
+    def _step(self, player_1_action, player_2_action):
        
         if(player_2_action is None):
             player_2_action = self.get_bot_move()
@@ -241,10 +260,9 @@ class Pong(gym.Env):
                 done = True
                 truncated = True
 
-        observation = self._get_obs() 
         info = {}
 
-        return observation, player_1_reward, done, truncated, info       
+        return player_1_reward, done, truncated, info       
         
 
 
