@@ -2,7 +2,7 @@ from agent import Agent
 import time
 from game import Pong
 
-episodes = 100
+episodes = 3000
 max_episode_steps = 10000
 total_steps = 0
 step_repeat = 4

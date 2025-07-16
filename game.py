@@ -13,7 +13,7 @@ import gymnasium as gym
 
 class Pong(gym.Env):
 
-    def __init__(self, window_width=1280, window_height=960, fps=60, player1="ai", player2="bot"):
+    def __init__(self, window_width=1280, window_height=960, fps=60, player1="ai", player2="bot", render_mode="rgbarray"):
        
         # Players should be human, bot, or ai
         for p in [player1, player2]:
@@ -23,7 +23,7 @@ class Pong(gym.Env):
         self.window_width = window_width
         self.window_height = window_height
         
-        if(player1 != "human"):
+        if(render_mode == "human"):
             os.environ["SDL_VIDEODRIVER"] = "dummy"
 
         pygame.init()
@@ -214,7 +214,7 @@ class Pong(gym.Env):
         self.ball.move()
         self.ball.draw(screen=self.screen)
 
-        if(self.player1 == "human" or self.player2 == "human"):
+        if(self.render_mode == "human"):
             self.clock.tick(self.fps)
         else:
             self.clock.tick()

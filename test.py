@@ -1,41 +1,30 @@
 from agent import Agent
-import gymnasium as gym
-from gymnasium.wrappers import GrayscaleObservation, ResizeObservation 
-import ale_py
-import os
-import pygame
+import time
+from game import Pong
 
+max_episode_steps = 10000
 total_steps = 0
 step_repeat = 4
+max_episode_steps = max_episode_steps / step_repeat
 
+batch_size = 64
 learning_rate = 0.0001
+epsilon = 1
+min_epsilon = 0.1
+epsilon_decay = 0.995
 gamma = 0.99
 
 hidden_layer = 128
 
 # print(observation.shape)
 
-os.environ["SDL_VIDEO_WINDOW_POS"] = "50,50"  # Position it on the screen
-os.environ["SDL_VIDEO_CENTERED"] = "0"
-
 # Constants
-env = gym.make("ALE/Pong-v5", render_mode="rgb_array")
+start_time = time.perf_counter()
 
-original_render = env.render
+env = Pong(player1="ai", player2="bot", render_mode="rgb")
 
-def custom_render(mode="human"):
-    result = original_render(mode)
-    if mode == "human":
-        screen = pygame.display.get_surface()
-        if screen:  # If the window exists, resize it
-            pygame.display.set_mode((500, 400), pygame.RESIZABLE)
-    return result
 
-env = ResizeObservation(env, (64, 64))
-
-env = GrayscaleObservation(env, keep_dim=True)
-
-env.render = custom_render
+summary_writer_suffix = f'dqn_lr={learning_rate}_hl={hidden_layer}_mse_loss_bs={batch_size}_double_dqn'
 
 agent = Agent(env, hidden_layer=hidden_layer,
               learning_rate=learning_rate, step_repeat=step_repeat,
@@ -43,6 +32,12 @@ agent = Agent(env, hidden_layer=hidden_layer,
 
 
 # Training Phase 1
+agent.test()
 
-agent.test() 
+end_time = time.perf_counter()
+
+elapsed_time = end_time - start_time
+
+print(f"Elapsed time was: {elapsed_time}")
+    
 
