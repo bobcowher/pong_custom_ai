@@ -58,7 +58,7 @@ class Agent():
 
         episode_reward = [0, 0]
 
-        for player in range(2):
+        for player in range(1):
 
             obs, info = self.env.reset()
 
