@@ -12,14 +12,15 @@ import os
 import pygame
 import cv2
 import numpy as np
+from game import Pong
 
 class Agent():
 
-    def __init__(self, env, hidden_layer, learning_rate, step_repeat, gamma) -> None:
+    def __init__(self, hidden_layer, learning_rate, gamma) -> None:
 
-        self.env = env
-
-        self.step_repeat = step_repeat
+        self.env = Pong(player1="ai", player2="ai", render_mode="rgbarray")
+        self.eval_envs = [Pong(player1="ai", player2="bot", render_mode="rgbarray"),
+                          Pong(player1="bot", player2="ai", render_mode="rgbarray")]
 
         self.gamma = gamma
 
@@ -29,11 +30,11 @@ class Agent():
 
         self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
-        self.memory = ReplayBuffer(max_size=500000, input_shape=player_1_obs.shape, n_actions=env.action_space.n, device=self.device)
+        self.memory = ReplayBuffer(max_size=500000, input_shape=player_1_obs.shape, n_actions=self.env.action_space.n, device=self.device)
 
-        self.model = Model(action_dim=env.action_space.n, hidden_dim=hidden_layer, observation_shape=obs.shape).to(self.device)
+        self.model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=obs.shape).to(self.device)
 
-        self.target_model = Model(action_dim=env.action_space.n, hidden_dim=hidden_layer, observation_shape=obs.shape).to(self.device)
+        self.target_model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=obs.shape).to(self.device)
 
         # Initialize target networks with model parameters
         self.target_model.load_state_dict(self.model.state_dict())
@@ -51,6 +52,41 @@ class Agent():
         player_2_obs = torch.flip(player_1_obs, dims=[2])
         return player_1_obs, player_2_obs 
 
+
+    def eval(self):
+        # Player 0 is mapping to player 1 for 0-index purposes.
+
+        episode_reward = [0, 0]
+
+        for player in range(2):
+
+            obs, info = self.env.reset()
+
+            player_1_obs, player_2_obs = self.process_observation(obs)
+
+            done = False
+
+            episode_reward[player] = 0
+
+            while not done:
+
+                reward = 0
+
+                if(player == 0):
+                    q_values = self.model.forward(player_1_obs.unsqueeze(0).to(self.device))[0]
+                    action = torch.argmax(q_values, dim=-1).item()
+                    next_obs, reward, _, done, truncated, info = self.eval_envs[player].step(player_1_action=action)
+                elif(player == 1):
+                    q_values = self.model.forward(player_2_obs.unsqueeze(0).to(self.device))[0]
+                    action = torch.argmax(q_values, dim=-1).item()
+                    next_obs, _, reward, done, truncated, info = self.eval_envs[player].step(player_2_action=action)
+
+                player_1_obs, player_2_obs = self.process_observation(next_obs)
+
+                episode_reward[player] += reward
+
+        return episode_reward[0], episode_reward[1]
+                
 
     def test(self):
 
@@ -126,14 +162,10 @@ class Agent():
                 player_1_reward = 0
                 player_2_reward = 0
 
-                for i in range(self.step_repeat):
-                    next_obs, player_1_reward_temp, player_2_reward_temp, done, truncated, info = self.env.step(player_1_action=player_1_action, player_2_action=player_2_action)
+                next_obs, player_1_reward, player_2_reward, done, truncated, info = self.env.step(player_1_action=player_1_action, player_2_action=player_2_action)
 
-                    player_1_reward += player_1_reward_temp
-                    player_2_reward += player_2_reward_temp
-
-                    if(done):
-                        break
+                if(done):
+                    break
 
                 player_1_next_obs, player_2_next_obs = self.process_observation(next_obs)
 
@@ -183,8 +215,14 @@ class Agent():
 
             self.model.save_the_model()
 
-            writer.add_scalar('Player 1 Score', player_1_episode_reward, episode)
-            writer.add_scalar('Player 2 Score', player_2_episode_reward, episode)
+            writer.add_scalar('Score/Player 1 Training', player_1_episode_reward, episode)
+            writer.add_scalar('Score/Player 2 Training', player_2_episode_reward, episode)
+
+            if episode > 0 and (episodes % episode == 0):
+                player_1_score_v_bot, player_2_score_v_bot = self.eval()
+                writer.add_scalar('Score/Player 1 v. Bot', player_2_episode_reward, episode)
+                writer.add_scalar('Score/Player 2 v. Bot', player_2_episode_reward, episode)
+
 
             writer.add_scalar('Epsilon', epsilon, episode)
 
