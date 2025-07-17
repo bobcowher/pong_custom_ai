@@ -22,7 +22,7 @@ class Pong(gym.Env):
 
         self.window_width = window_width
         self.window_height = window_height
-        self.step_repeat = 4
+        self.step_repeat = step_repeat 
 
         self.render_mode = render_mode
         
@@ -249,8 +249,8 @@ class Pong(gym.Env):
             self.ball.spawn()
         elif(self.ball.x > self.window_width):
             self.player_2_score += 1
-            player_2_reward += 1
             player_1_reward -= 1
+            player_2_reward += 1
             self.ball.spawn()
 
 

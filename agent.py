@@ -105,7 +105,6 @@ class Agent():
             obs, info = self.env.reset()
             player_1_obs, player_2_obs = self.process_observation(obs)
 
-
             episode_steps = 0
 
             episode_start_time = time.time()
@@ -115,13 +114,13 @@ class Agent():
                 if random.random() < epsilon:
                     player_1_action = self.env.action_space.sample()
                 else:
-                    player_1_q_values = self.model.forward(obs.unsqueeze(0).to(self.device))[0]
+                    player_1_q_values = self.model.forward(player_1_obs.unsqueeze(0).to(self.device))[0]
                     player_1_action = torch.argmax(player_1_q_values, dim=-1).item()
                    
                 if random.random() < epsilon:
                     player_2_action = self.env.action_space.sample()
                 else:
-                    player_2_q_values = self.model.forward(obs.unsqueeze(0).to(self.device))[0]
+                    player_2_q_values = self.model.forward(player_2_obs.unsqueeze(0).to(self.device))[0]
                     player_2_action = torch.argmax(player_2_q_values, dim=-1).item()
 
                 player_1_reward = 0
@@ -138,10 +137,11 @@ class Agent():
 
                 player_1_next_obs, player_2_next_obs = self.process_observation(next_obs)
 
-                self.memory.store_transition(obs, player_1_action, player_1_reward, player_1_next_obs, done)
-                self.memory.store_transition(obs, player_2_action, player_2_reward, player_2_next_obs, done)
+                self.memory.store_transition(player_1_obs, player_1_action, player_1_reward, player_1_next_obs, done)
+                self.memory.store_transition(player_2_obs, player_2_action, player_2_reward, player_2_next_obs, done)
 
-                obs = next_obs        
+                player_1_obs = player_1_next_obs
+                player_2_obs = player_2_next_obs
 
                 player_1_episode_reward += player_1_reward
                 player_2_episode_reward += player_2_reward
