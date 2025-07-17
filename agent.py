@@ -11,6 +11,7 @@ import random
 import os
 import pygame
 import cv2
+import numpy as np
 
 class Agent():
 
@@ -24,11 +25,11 @@ class Agent():
 
         obs, info = self.env.reset()
 
-        obs = self.process_observation(obs)
+        player_1_obs, _ = self.process_observation(obs)
 
         self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
-        self.memory = ReplayBuffer(max_size=500000, input_shape=obs.shape, n_actions=env.action_space.n, device=self.device)
+        self.memory = ReplayBuffer(max_size=500000, input_shape=player_1_obs.shape, n_actions=env.action_space.n, device=self.device)
 
         self.model = Model(action_dim=env.action_space.n, hidden_dim=hidden_layer, observation_shape=obs.shape).to(self.device)
 
@@ -46,8 +47,9 @@ class Agent():
 
     def process_observation(self, obs):
         # obs = torch.tensor(obs, dtype=torch.float32).permute(2,0,1)  
-        obs = torch.tensor(obs, dtype=torch.float32)  
-        return obs
+        player_1_obs = torch.tensor(obs, dtype=torch.float32)  
+        player_2_obs = torch.flip(player_1_obs, dims=[2])
+        return player_1_obs, player_2_obs 
 
 
     def test(self):
@@ -56,7 +58,7 @@ class Agent():
 
         obs, info = self.env.reset()
 
-        obs = self.process_observation(obs)
+        player_1_obs, player_2_obs = self.process_observation(obs)
 
         done = False
 
@@ -81,7 +83,7 @@ class Agent():
                 if done:
                     break
 
-            obs = self.process_observation(next_obs)
+            player_1_obs, player_2_obs = self.process_observation(next_obs)
 
             episode_reward += reward
 
@@ -98,9 +100,10 @@ class Agent():
         for episode in range(episodes):
 
             done = False
-            episode_reward = 0
+            player_1_episode_reward = 0
+            player_2_episode_reward = 0
             obs, info = self.env.reset()
-            obs = self.process_observation(obs)
+            player_1_obs, player_2_obs = self.process_observation(obs)
 
 
             episode_steps = 0
@@ -110,29 +113,38 @@ class Agent():
             while not done and episode_steps < max_episode_steps:
 
                 if random.random() < epsilon:
-                    action = self.env.action_space.sample()
+                    player_1_action = self.env.action_space.sample()
                 else:
-                    q_values = self.model.forward(obs.unsqueeze(0).to(self.device))[0]
-                    action = torch.argmax(q_values, dim=-1).item()
+                    player_1_q_values = self.model.forward(obs.unsqueeze(0).to(self.device))[0]
+                    player_1_action = torch.argmax(player_1_q_values, dim=-1).item()
+                   
+                if random.random() < epsilon:
+                    player_2_action = self.env.action_space.sample()
+                else:
+                    player_2_q_values = self.model.forward(obs.unsqueeze(0).to(self.device))[0]
+                    player_2_action = torch.argmax(player_2_q_values, dim=-1).item()
 
-                reward = 0
+                player_1_reward = 0
+                player_2_reward = 0
 
                 for i in range(self.step_repeat):
-                    reward_temp = 0
-                    next_obs, reward_temp, done, truncated, info = self.env.step(player_1_action=action)
+                    next_obs, player_1_reward_temp, player_2_reward_temp, done, truncated, info = self.env.step(player_1_action=player_1_action, player_2_action=player_2_action)
 
-                    reward += reward_temp
+                    player_1_reward += player_1_reward_temp
+                    player_2_reward += player_2_reward_temp
 
                     if(done):
                         break
 
-                next_obs = self.process_observation(next_obs)
+                player_1_next_obs, player_2_next_obs = self.process_observation(next_obs)
 
-                self.memory.store_transition(obs, action, reward, next_obs, done)
+                self.memory.store_transition(obs, player_1_action, player_1_reward, player_1_next_obs, done)
+                self.memory.store_transition(obs, player_2_action, player_2_reward, player_2_next_obs, done)
 
                 obs = next_obs        
 
-                episode_reward += reward
+                player_1_episode_reward += player_1_reward
+                player_2_episode_reward += player_2_reward
                 episode_steps += 1
                 total_steps += 1
 
@@ -171,7 +183,9 @@ class Agent():
 
             self.model.save_the_model()
 
-            writer.add_scalar('Score', episode_reward, episode)
+            writer.add_scalar('Player 1 Score', player_1_episode_reward, episode)
+            writer.add_scalar('Player 2 Score', player_2_episode_reward, episode)
+
             writer.add_scalar('Epsilon', epsilon, episode)
 
             if epsilon > min_epsilon:
@@ -179,6 +193,7 @@ class Agent():
 
             episode_time = time.time() - episode_start_time
 
-            print(f"Completed episode {episode} with score {episode_reward}")
+            print(f"Completed episode {episode} with Player 1 score {player_1_episode_reward}")
+            print(f"Completed episode {episode} with Player 2 score {player_2_episode_reward}")
             print(f"Episode Time: {episode_time:1f} seconds")
             print(f"Episode Steps: {episode_steps}")

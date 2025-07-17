@@ -200,17 +200,19 @@ class Pong(gym.Env):
         
     def step(self, player_1_action=None, player_2_action=None):
         total_player_1_reward = 0
+        total_player_2_reward = 0
         
         for i in range(self.step_repeat):
-            player_1_reward, done, truncated, info = self._step(player_1_action=player_1_action, player_2_action=player_2_action)
+            player_1_reward, player_2_reward, done, truncated, info = self._step(player_1_action=player_1_action, player_2_action=player_2_action)
             total_player_1_reward = total_player_1_reward + player_1_reward
+            total_player_2_reward = total_player_2_reward + player_2_reward
 
             if done:
                 break
 
         observation = self._get_obs() 
 
-        return observation, total_player_1_reward, done, truncated, info
+        return observation, total_player_1_reward, total_player_2_reward, done, truncated, info
 
 
     def _step(self, player_1_action, player_2_action):
@@ -262,7 +264,7 @@ class Pong(gym.Env):
 
         info = {}
 
-        return player_1_reward, done, truncated, info       
+        return player_1_reward, player_2_reward, done, truncated, info       
         
 
 
