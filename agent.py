@@ -85,6 +85,8 @@ class Agent():
 
                 episode_reward[player] += reward
 
+                obs = next_obs
+
         return episode_reward[0], episode_reward[1]
                 
 
