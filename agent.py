@@ -46,6 +46,17 @@ class Agent():
         print(f"Initialized agents on device: {self.device}")
 
 
+
+    def get_action(self, obs, model=None):
+        if model == None:
+            model = self.model
+
+        q_values = self.model.forward(obs.unsqueeze(0).to(self.device))[0]
+        action = torch.argmax(q_values, dim=-1).item()
+
+        return action
+
+
     def process_observation(self, obs):
         # obs = torch.tensor(obs, dtype=torch.float32).permute(2,0,1)  
         player_1_obs = torch.tensor(obs, dtype=torch.float32)  
@@ -97,9 +108,9 @@ class Agent():
 
         self.model.load_the_model()
 
-        obs, info = self.env.reset()
+        obs, info = self.eval_envs[0].reset()
 
-        player_1_reward, player_2_obs = self.process_observation(obs)
+        player_1_obs, player_2_obs = self.process_observation(obs)
 
         done = False
 
@@ -107,11 +118,7 @@ class Agent():
 
         while not done:
 
-            if random.random() < 0.05:
-                action = self.env.action_space.sample()
-            else:
-                q_values = self.model.forward(player_2_obs.unsqueeze(0).to(self.device))[0]
-                action = torch.argmax(q_values, dim=-1).item()
+            action = self.get_action(player_1_obs)
 
             next_obs, player_1_reward, _, done, truncated, info = self.env.step(player_1_action=action)
             
@@ -218,11 +225,20 @@ class Agent():
             writer.add_scalar('Score/Player 1 Training', player_1_episode_reward, episode)
             writer.add_scalar('Score/Player 2 Training', player_2_episode_reward, episode)
 
-            if episode > 0 and (episode % 100 == 0):
+
+            if episode > 0 and (episode % 10 == 0):
+
+                print("\nEval Run Started")
+
                 for difficulty in ['easy', 'hard']:
                     player_1_score_v_bot, player_2_score_v_bot = self.eval(bot_difficulty=difficulty)
                     writer.add_scalar(f'Score/Player 1 v. {difficulty} Bot', player_1_score_v_bot, episode)
                     writer.add_scalar(f'Score/Player 2 v. {difficulty} Bot', player_2_score_v_bot, episode)
+
+                    print(f"Player 1 v. {difficulty} Bot: {player_1_score_v_bot}")
+                    print(f"Player 2 v. {difficulty} Bot: {player_2_score_v_bot}")
+                
+                print("Eval Run Finished\n")
 
 
             writer.add_scalar('Epsilon', epsilon, episode)

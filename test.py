@@ -21,13 +21,13 @@ hidden_layer = 128
 # Constants
 start_time = time.perf_counter()
 
-env = Pong(player1="ai", player2="bot", render_mode="rgb")
+env = Pong(player1="ai", player2="bot", render_mode="human")
 
 
 summary_writer_suffix = f'dqn_lr={learning_rate}_hl={hidden_layer}_mse_loss_bs={batch_size}_double_dqn'
 
-agent = Agent(env, hidden_layer=hidden_layer,
-              learning_rate=learning_rate, step_repeat=step_repeat,
+agent = Agent(hidden_layer=hidden_layer,
+              learning_rate=learning_rate,
               gamma=gamma)
 
 
