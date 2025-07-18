@@ -73,7 +73,7 @@ class Agent():
 
         for player in range(2):
 
-            obs, info = self.env.reset()
+            obs, info = self.eval_envs[player].reset()
 
             player_1_obs, player_2_obs = self.process_observation(obs)
 
