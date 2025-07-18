@@ -13,7 +13,7 @@ import gymnasium as gym
 
 class Pong(gym.Env):
 
-    def __init__(self, window_width=1280, window_height=960, fps=60, player1="ai", player2="bot", render_mode="rgbarray", step_repeat=4):
+    def __init__(self, window_width=1280, window_height=960, fps=60, player1="ai", player2="bot", render_mode="rgbarray", step_repeat=4, bot_difficulty="hard"):
        
         # Players should be human, bot, or ai
         for p in [player1, player2]:
@@ -43,6 +43,8 @@ class Pong(gym.Env):
        
         self.player_1_color = (50, 205, 50)
         self.player_2_color = (138, 43, 226)
+
+        self.bot_difficulty = bot_difficulty 
         
         self.font = pygame.font.SysFont(None, 70)
         self.announcement_font = pygame.font.SysFont(None, 150)
@@ -51,6 +53,11 @@ class Pong(gym.Env):
         self.player2 = player2
         self.action_space = gym.spaces.Discrete(3)
 
+        print("Creating new Pong game")
+        print("Players:")
+        print("Player 1: ", player1)
+        print("Player 2: ", player2)
+        print("Bot difficulty: ", self.bot_difficulty)
 
         self.reset()
 
@@ -115,9 +122,9 @@ class Pong(gym.Env):
                     player_2_action = 2
 
             if self.player1 == "bot":
-                player_1_action = self.get_bot_move()
+                player_1_action = self.get_bot_move(player=1)
             if self.player2 == "bot":
-                player_2_action = self.get_bot_move()
+                player_2_action = self.get_bot_move(player=2)
 
             self.step(player_1_action, player_2_action)
     
@@ -143,25 +150,31 @@ class Pong(gym.Env):
         return observation
 
 
-    def get_bot_move(self):
+    def get_bot_move(self, player):
          
-        random_target = 0.05
-        rqueue = 5
+        random_target = 0.1
+        next_move = 0
 
-        if self.bot_move_queue.__len__() > 0:
-            pass 
-        elif random.random() <= random_target:
-            next_move = random.randint(0, 2)
-            
-            # for i in range(rqueue):
-            self.bot_move_queue.append(next_move)
-        else:
-            if(self.ball.vy > 0):
-                self.bot_move_queue.append(2)
+        player_y = self.player_1_paddle.y if player == 1 else self.player_2_paddle.y
+
+        if(self.bot_difficulty == "easy"):
+            if random.random() <= random_target:
+                next_move = random.randint(0, 2)
             else:
-                self.bot_move_queue.append(1)
+                if(self.ball.vy > 0):
+                    next_move = 2
+                else:
+                    next_move = 1
+        elif(self.bot_difficulty == "hard"):
+            if random.random() <= random_target:
+                next_move = random.randint(0, 2)
+            else:
+                if(self.ball.y > (player_y + 60)):
+                    next_move = 2
+                elif(self.ball.y < (player_y + 60)):
+                    next_move = 1
 
-        return self.bot_move_queue.pop(0)       
+        return next_move 
 
 
     def game_over(self):
@@ -217,8 +230,10 @@ class Pong(gym.Env):
 
     def _step(self, player_1_action, player_2_action):
        
+        if(player_1_action is None):
+            player_1_action = self.get_bot_move(1)
         if(player_2_action is None):
-            player_2_action = self.get_bot_move()
+            player_2_action = self.get_bot_move(2)
 
         done = False
         truncated = False

@@ -53,12 +53,14 @@ class Agent():
         return player_1_obs, player_2_obs 
 
 
-    def eval(self):
+    def eval(self, bot_difficulty="easy"):
         # Player 0 is mapping to player 1 for 0-index purposes.
-
+        for eval_env in self.eval_envs:
+            eval_env.bot_difficulty = bot_difficulty
+        
         episode_reward = [0, 0]
 
-        for player in range(1):
+        for player in range(2):
 
             obs, info = self.env.reset()
 
@@ -220,10 +222,11 @@ class Agent():
             writer.add_scalar('Score/Player 1 Training', player_1_episode_reward, episode)
             writer.add_scalar('Score/Player 2 Training', player_2_episode_reward, episode)
 
-            if episode > 0 and (episodes % episode == 0):
-                player_1_score_v_bot, player_2_score_v_bot = self.eval()
-                writer.add_scalar('Score/Player 1 v. Bot', player_2_episode_reward, episode)
-                writer.add_scalar('Score/Player 2 v. Bot', player_2_episode_reward, episode)
+            if episode > 0 and (episode % 100 == 0):
+                for difficulty in ['easy', 'hard']:
+                    player_1_score_v_bot, player_2_score_v_bot = self.eval(bot_difficulty=difficulty)
+                    writer.add_scalar(f'Score/Player 1 v. {difficulty} Bot', player_1_score_v_bot, episode)
+                    writer.add_scalar(f'Score/Player 2 v. {difficulty} Bot', player_2_score_v_bot, episode)
 
 
             writer.add_scalar('Epsilon', epsilon, episode)
