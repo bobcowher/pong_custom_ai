@@ -93,12 +93,13 @@ class Agent():
                 
 
     def test(self):
+        # This function is meant to show the bot running as player 1.
 
         self.model.load_the_model()
 
         obs, info = self.env.reset()
 
-        player_1_obs, player_2_obs = self.process_observation(obs)
+        player_1_reward, player_2_obs = self.process_observation(obs)
 
         done = False
 
@@ -109,23 +110,18 @@ class Agent():
             if random.random() < 0.05:
                 action = self.env.action_space.sample()
             else:
-                q_values = self.model.forward(obs.unsqueeze(0).to(self.device))[0]
+                q_values = self.model.forward(player_2_obs.unsqueeze(0).to(self.device))[0]
                 action = torch.argmax(q_values, dim=-1).item()
 
-            reward = 0
+            next_obs, player_1_reward, _, done, truncated, info = self.env.step(player_1_action=action)
+            
+            episode_reward += player_1_reward 
 
-            for i in range(self.step_repeat):
-                reward_temp = 0
-                next_obs, reward_temp, done, truncated, info = self.env.step(player_1_action=action)
-
-                reward += reward_temp
-
-                if done:
-                    break
+            if done:
+                break
 
             player_1_obs, player_2_obs = self.process_observation(next_obs)
 
-            episode_reward += reward
 
 
     def train(self, episodes, max_episode_steps, summary_writer_suffix, batch_size, epsilon, epsilon_decay, min_epsilon):
