@@ -30,7 +30,7 @@ class Agent():
 
         self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
-        self.memory = ReplayBuffer(max_size=500000, input_shape=player_1_obs.shape, n_actions=self.env.action_space.n, device=self.device)
+        self.memory = ReplayBuffer(max_size=500000, input_shape=player_1_obs.shape, n_actions=self.env.action_space.n, input_device=self.device, output_device=self.device)
 
         self.model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=obs.shape).to(self.device)
 
