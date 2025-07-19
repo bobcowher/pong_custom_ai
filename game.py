@@ -141,8 +141,8 @@ class Pong(gym.Env):
         # Transpose to (height, width, channels)
         screen_array = np.transpose(screen_array, (1, 0, 2))
 
-        # Resize to 128x128
-        downscaled_image = cv2.resize(screen_array, (128, 128), interpolation=cv2.INTER_NEAREST)
+        # Resize to 84, 84 
+        downscaled_image = cv2.resize(screen_array, (84, 84), interpolation=cv2.INTER_NEAREST)
 
         # Convert to grayscale
         grayscale = cv2.cvtColor(downscaled_image, cv2.COLOR_RGB2GRAY)
