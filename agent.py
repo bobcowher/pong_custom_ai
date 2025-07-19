@@ -16,7 +16,14 @@ from game import Pong
 
 class Agent():
 
-    def __init__(self, hidden_layer, learning_rate, gamma, max_buffer_size) -> None:
+    def __init__(self, hidden_layer=512, learning_rate=0.0001, gamma=0.99, max_buffer_size=100000, eval=False) -> None:
+
+        self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+        
+        if eval:
+            self.model = Model(action_dim=3, hidden_dim=hidden_layer, observation_shape=(1,128,128)).to(self.device)
+            self.model.load_the_model()
+            return
 
         self.env = Pong(player1="ai", player2="ai", render_mode="rgbarray")
         self.eval_envs = [Pong(player1="ai", player2="bot", render_mode="rgbarray"),
@@ -28,7 +35,7 @@ class Agent():
 
         player_1_obs, _ = self.process_observation(obs)
 
-        self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+        print(f"Player1 1 Obs Shape: {player_1_obs.shape}")
 
         self.memory = ReplayBuffer(max_size=max_buffer_size, input_shape=player_1_obs.shape, n_actions=self.env.action_space.n, input_device=self.device, output_device=self.device)
 

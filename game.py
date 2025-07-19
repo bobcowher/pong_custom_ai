@@ -13,7 +13,7 @@ import gymnasium as gym
 
 class Pong(gym.Env):
 
-    def __init__(self, window_width=1280, window_height=960, fps=60, player1="ai", player2="bot", render_mode="rgbarray", step_repeat=4, bot_difficulty="hard"):
+    def __init__(self, window_width=1280, window_height=960, fps=60, player1="ai", player2="bot", render_mode="rgbarray", step_repeat=4, bot_difficulty="hard", ai_agent=None):
        
         # Players should be human, bot, or ai
         for p in [player1, player2]:
@@ -53,6 +53,8 @@ class Pong(gym.Env):
         self.player2 = player2
         self.action_space = gym.spaces.Discrete(3)
 
+        self.ai_agent = ai_agent
+
         print("Creating new Pong game")
         print("Players:")
         print("Player 1: ", player1)
@@ -90,8 +92,6 @@ class Pong(gym.Env):
                          player_1_paddle=self.player_1_paddle,
                          player_2_paddle=self.player_2_paddle)
 
-        self.bot_move_queue = []
-
         return self._get_obs(), {}
 
 
@@ -125,6 +125,11 @@ class Pong(gym.Env):
                 player_1_action = self.get_bot_move(player=1)
             if self.player2 == "bot":
                 player_2_action = self.get_bot_move(player=2)
+
+            if self.player1 == "ai":
+                player_1_action = self.get_ai_move(player=1)
+            if self.player2 == "ai":
+                player_2_action = self.get_ai_move(player=2)
 
             self.step(player_1_action, player_2_action)
     
@@ -176,6 +181,27 @@ class Pong(gym.Env):
 
         return next_move 
 
+    
+    def get_ai_move(self, player):
+        
+        if self.ai_agent == None:
+            raise Exception("Can't make an AI move without an AI")
+        elif player not in [1, 2]:
+            raise Exception("Only players 1 and 2 are valid")
+
+
+        obs = self._get_obs()
+        player_1_obs, player_2_obs = self.ai_agent.process_observation(obs)
+
+        action = None
+
+        if(player == 1):
+           action = self.ai_agent.get_action(player_1_obs) 
+        elif(player == 2):
+           action = self.ai_agent.get_action(player_2_obs)
+
+        return action 
+
 
     def game_over(self):
         # Render the "You Died" message
@@ -219,7 +245,7 @@ class Pong(gym.Env):
         
 
     def step(self, player_1_action=None, player_2_action=None):
-
+        
         if self.player2 == "ai":
             player_2_action = self.mirror_action(player_2_action)
 
@@ -282,7 +308,7 @@ class Pong(gym.Env):
 
         if(self.player_1_score >= self.top_score or 
            self.player_2_score >= self.top_score):
-            if self.player1 == "human":
+            if self.render_mode == "human":
                 self.game_over()
             else:
                 done = True
