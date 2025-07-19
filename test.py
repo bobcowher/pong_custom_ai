@@ -14,7 +14,7 @@ min_epsilon = 0.1
 epsilon_decay = 0.995
 gamma = 0.99
 
-hidden_layer = 128
+hidden_layer = 512 
 
 # print(observation.shape)
 
@@ -28,7 +28,8 @@ summary_writer_suffix = f'dqn_lr={learning_rate}_hl={hidden_layer}_mse_loss_bs={
 
 agent = Agent(hidden_layer=hidden_layer,
               learning_rate=learning_rate,
-              gamma=gamma)
+              gamma=gamma,
+              max_buffer_size=1000)
 
 
 # Training Phase 1
