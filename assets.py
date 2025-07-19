@@ -57,8 +57,8 @@ class Ball:
 
 
     def spawn(self):
-        self.x = self.window_height / 2
-        self.y = self.window_width / 2
+        self.x = self.window_width / 2
+        self.y = self.window_height / 2
         self.vx = random.choice([-12, -10, -8, 8, 10, 12])
         self.vy = random.choice([-6, -4, -2, 2, 4, 6])
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
