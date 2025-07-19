@@ -16,7 +16,7 @@ from game import Pong
 
 class Agent():
 
-    def __init__(self, hidden_layer, learning_rate, gamma) -> None:
+    def __init__(self, hidden_layer, learning_rate, gamma, max_buffer_size) -> None:
 
         self.env = Pong(player1="ai", player2="ai", render_mode="rgbarray")
         self.eval_envs = [Pong(player1="ai", player2="bot", render_mode="rgbarray"),
@@ -30,7 +30,7 @@ class Agent():
 
         self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
-        self.memory = ReplayBuffer(max_size=500000, input_shape=player_1_obs.shape, n_actions=self.env.action_space.n, input_device=self.device, output_device=self.device)
+        self.memory = ReplayBuffer(max_size=max_buffer_size, input_shape=player_1_obs.shape, n_actions=self.env.action_space.n, input_device=self.device, output_device=self.device)
 
         self.model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=obs.shape).to(self.device)
 
@@ -86,12 +86,10 @@ class Agent():
                 reward = 0
 
                 if(player == 0):
-                    q_values = self.model.forward(player_1_obs.unsqueeze(0).to(self.device))[0]
-                    action = torch.argmax(q_values, dim=-1).item()
+                    action = self.get_action(player_1_obs) 
                     next_obs, reward, _, done, truncated, info = self.eval_envs[player].step(player_1_action=action)
                 elif(player == 1):
-                    q_values = self.model.forward(player_2_obs.unsqueeze(0).to(self.device))[0]
-                    action = torch.argmax(q_values, dim=-1).item()
+                    action = self.get_action(player_2_obs) 
                     next_obs, _, reward, done, truncated, info = self.eval_envs[player].step(player_2_action=action)
 
                 player_1_obs, player_2_obs = self.process_observation(next_obs)
@@ -157,14 +155,12 @@ class Agent():
                 if random.random() < epsilon:
                     player_1_action = self.env.action_space.sample()
                 else:
-                    player_1_q_values = self.model.forward(player_1_obs.unsqueeze(0).to(self.device))[0]
-                    player_1_action = torch.argmax(player_1_q_values, dim=-1).item()
+                    player_1_action = self.get_action(player_1_obs)
                    
                 if random.random() < epsilon:
                     player_2_action = self.env.action_space.sample()
                 else:
-                    player_2_q_values = self.model.forward(player_2_obs.unsqueeze(0).to(self.device))[0]
-                    player_2_action = torch.argmax(player_2_q_values, dim=-1).item()
+                    player_2_action = self.get_action(player_2_obs) 
 
                 player_1_reward = 0
                 player_2_reward = 0
