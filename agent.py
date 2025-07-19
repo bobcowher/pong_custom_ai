@@ -21,7 +21,7 @@ class Agent():
         self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
         
         if eval:
-            self.model = Model(action_dim=3, hidden_dim=hidden_layer, observation_shape=(1,128,128)).to(self.device)
+            self.model = Model(action_dim=3, hidden_dim=hidden_layer, observation_shape=(1,84,84)).to(self.device)
             self.model.load_the_model()
             return
 
