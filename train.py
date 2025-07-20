@@ -6,13 +6,13 @@ episodes = 100000
 max_episode_steps = 10000
 total_steps = 0
 
-batch_size = 64
+batch_size = 128 
 learning_rate = 0.0001
 epsilon = 1
 min_epsilon = 0.1
 epsilon_decay = 0.995
 gamma = 0.99
-max_buffer_size = 500000
+max_buffer_size = 750000
 
 hidden_layer = 512 
 
@@ -21,7 +21,7 @@ hidden_layer = 512
 # Constants
 start_time = time.perf_counter()
 
-summary_writer_suffix = f'dqn_lr={learning_rate}'
+summary_writer_suffix = f'dqn_lr={learning_rate}_bs={batch_size}_buffer={max_buffer_size}'
 
 agent = Agent(hidden_layer=hidden_layer,
               learning_rate=learning_rate,
