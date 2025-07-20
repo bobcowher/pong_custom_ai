@@ -3,7 +3,7 @@ import numpy as np
 
 class ReplayBuffer:
     def __init__(self, max_size, input_shape, n_actions,
-                 input_device, output_device='cpu'):
+                 input_device, output_device='cpu', frame_stack=4):
         self.mem_size = max_size
         self.mem_ctr  = 0
         self.input_device  = input_device

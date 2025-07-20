@@ -4,11 +4,11 @@ import torch.nn.functional as F
 import time
 
 class Model(nn.Module):
-    def __init__(self, action_dim, hidden_dim=256, observation_shape=None):
+    def __init__(self, action_dim, hidden_dim=256, observation_shape=None, obs_stack=4):
         super(Model, self).__init__()
 
         # CNN layers with a third layer added
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=8, kernel_size=4, stride=2)
+        self.conv1 = nn.Conv2d(in_channels=obs_stack, out_channels=8, kernel_size=4, stride=2)
         self.conv2 = nn.Conv2d(in_channels=8, out_channels=16, kernel_size=4, stride=2)
         self.conv3 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=2)  # Third convolutional layer
 
