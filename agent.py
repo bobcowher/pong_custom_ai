@@ -1,3 +1,4 @@
+from pygame.event import clear
 from buffer import ReplayBuffer
 from model import Model, soft_update, hard_update
 import torch
@@ -21,8 +22,12 @@ class Agent():
 
         self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
         
+        self.frame_stack = frame_stack
+        self.frames_player_1 = deque(maxlen=frame_stack)
+        self.frames_player_2 = deque(maxlen=frame_stack)
+        
         if eval:
-            self.model = Model(action_dim=3, hidden_dim=hidden_layer, observation_shape=(1,84,84)).to(self.device)
+            self.model = Model(action_dim=3, hidden_dim=hidden_layer, observation_shape=(frame_stack,84,84)).to(self.device)
             self.model.load_the_model()
             return
 
@@ -31,24 +36,18 @@ class Agent():
                           Pong(player1="bot", player2="ai", render_mode="rgbarray")]
 
         self.gamma = gamma
-        
-        self.frame_stack = frame_stack
-        self.frames_player_1 = deque(maxlen=frame_stack)
-        self.frames_player_2 = deque(maxlen=frame_stack)
 
         obs, info = self.env.reset()
 
-        player_1_obs, player_2_obs = self.process_observation(obs)
-        self.init_frame_stack(player_1_obs, player_2_obs)
-        player_1_obs_stacked, _ = self._get_stacked()
+        player_1_obs, player_2_obs = self.process_observation(obs, clear_stack=True)
 
         print(f"Player1 1 Obs Shape: {player_1_obs.shape}")
 
-        self.memory = ReplayBuffer(max_size=max_buffer_size, input_shape=player_1_obs_stacked.shape, n_actions=self.env.action_space.n, input_device=self.device, output_device=self.device)
+        self.memory = ReplayBuffer(max_size=max_buffer_size, input_shape=player_1_obs.shape, n_actions=self.env.action_space.n, input_device=self.device, output_device=self.device)
 
-        self.model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=player_1_obs_stacked.shape).to(self.device)
+        self.model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=player_1_obs.shape).to(self.device)
 
-        self.target_model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=player_1_obs_stacked.shape).to(self.device)
+        self.target_model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=player_1_obs.shape).to(self.device)
 
         # Initialize target networks with model parameters
         self.target_model.load_state_dict(self.model.state_dict())
@@ -69,18 +68,6 @@ class Agent():
             self.frames_player_2.append(player_2_obs)
 
 
-    def push_frame(self, player_1_obs, player_2_obs):
-        self.frames_player_1.append(player_1_obs)
-        self.frames_player_2.append(player_2_obs)
-
-
-    def _get_stacked(self):
-        """Return k-frame tensors ready for the network/buffer."""
-        s1 = torch.cat(tuple(self.frames_player_1), dim=0)     # (k,84,84)
-        s2 = torch.cat(tuple(self.frames_player_2), dim=0)
-        return s1, s2
-
-
     def get_action(self, obs, model=None):
         if model == None:
             model = self.model
@@ -91,11 +78,21 @@ class Agent():
         return action
 
 
-    def process_observation(self, obs):
+    def process_observation(self, obs, clear_stack=False):
         # obs = torch.tensor(obs, dtype=torch.float32).permute(2,0,1)  
         player_1_obs = torch.tensor(obs, dtype=torch.float32)  
         player_2_obs = torch.flip(player_1_obs, dims=[2])
-        return player_1_obs, player_2_obs 
+
+        if(len(self.frames_player_1) < self.frame_stack) or clear_stack:
+            self.init_frame_stack(player_1_obs, player_2_obs)
+
+        self.frames_player_1.append(player_1_obs)
+        self.frames_player_2.append(player_2_obs)
+
+        player_1_obs_stacked = torch.cat(tuple(self.frames_player_1), dim=0)     # (k,84,84)
+        player_2_obs_stacked = torch.cat(tuple(self.frames_player_2), dim=0)
+
+        return player_1_obs_stacked, player_2_obs_stacked
 
 
     def eval(self, bot_difficulty="easy"):
@@ -110,11 +107,7 @@ class Agent():
 
             obs, info = self.eval_envs[player].reset()
 
-            player_1_obs, player_2_obs = self.process_observation(obs)
-
-            self.init_frame_stack(player_1_obs, player_2_obs)
-            
-            player_1_obs_stacked, player_2_obs_stacked = self._get_stacked() 
+            player_1_obs, player_2_obs = self.process_observation(obs, clear_stack=True)
 
             done = False
 
@@ -125,15 +118,13 @@ class Agent():
                 reward = 0
 
                 if(player == 0):
-                    action = self.get_action(player_1_obs_stacked) 
+                    action = self.get_action(player_1_obs) 
                     next_obs, reward, _, done, truncated, info = self.eval_envs[player].step(player_1_action=action)
                 elif(player == 1):
-                    action = self.get_action(player_2_obs_stacked) 
+                    action = self.get_action(player_2_obs) 
                     next_obs, _, reward, done, truncated, info = self.eval_envs[player].step(player_2_action=action)
 
                 player_1_obs, player_2_obs = self.process_observation(next_obs)
-                self.push_frame(player_1_obs, player_2_obs)
-                player_1_obs_stacked, player_2_obs_stacked = self._get_stacked()
 
                 episode_reward[player] += reward
 
@@ -158,10 +149,6 @@ class Agent():
 
             player_1_obs, player_2_obs = self.process_observation(obs)
 
-            self.init_frame_stack(player_1_obs, player_2_obs)
-
-            player_1_obs_stacked, player_2_obs_stacked = self._get_stacked()
-
             episode_steps = 0
 
             episode_start_time = time.time()
@@ -171,12 +158,12 @@ class Agent():
                 if random.random() < epsilon:
                     player_1_action = self.env.action_space.sample()
                 else:
-                    player_1_action = self.get_action(player_1_obs_stacked)
+                    player_1_action = self.get_action(player_1_obs)
                    
                 if random.random() < epsilon:
                     player_2_action = self.env.action_space.sample()
                 else:
-                    player_2_action = self.get_action(player_2_obs_stacked) 
+                    player_2_action = self.get_action(player_2_obs) 
 
                 player_1_reward = 0
                 player_2_reward = 0
@@ -185,14 +172,11 @@ class Agent():
 
                 player_1_next_obs, player_2_next_obs = self.process_observation(next_obs)
 
-                self.push_frame(player_1_next_obs, player_2_next_obs)
-                player_1_next_obs_stacked, player_2_next_obs_stacked = self._get_stacked()
+                self.memory.store_transition(player_1_obs, player_1_action, player_1_reward, player_1_next_obs, done)
+                self.memory.store_transition(player_2_obs, player_2_action, player_2_reward, player_2_next_obs, done)
 
-                self.memory.store_transition(player_1_obs_stacked, player_1_action, player_1_reward, player_1_next_obs_stacked, done)
-                self.memory.store_transition(player_2_obs_stacked, player_2_action, player_2_reward, player_2_next_obs_stacked, done)
-
-                player_1_obs_stacked = player_1_next_obs_stacked
-                player_2_obs_stacked = player_2_next_obs_stacked
+                player_1_obs = player_1_next_obs
+                player_2_obs = player_2_next_obs
 
                 player_1_episode_reward += player_1_reward
                 player_2_episode_reward += player_2_reward
@@ -232,13 +216,12 @@ class Agent():
                     if episode_steps % 4 == 0:
                         soft_update(self.target_model, self.model)
 
-            self.model.save_the_model()
 
             writer.add_scalar('Score/Player 1 Training', player_1_episode_reward, episode)
             writer.add_scalar('Score/Player 2 Training', player_2_episode_reward, episode)
 
 
-            if episode > 0 and (episode % 10 == 0):
+            if episode > 0 and (episode % 100 == 0):
 
                 print("\nEval Run Started")
 
@@ -250,7 +233,9 @@ class Agent():
                     print(f"Player 1 v. {difficulty} Bot: {player_1_score_v_bot}")
                     print(f"Player 2 v. {difficulty} Bot: {player_2_score_v_bot}")
                 
-                print("Eval Run Finished\n")
+                print("Eval Run Finished. Saving the model...\n")
+                self.model.save_the_model()
+                print("Model Saved")
 
 
             writer.add_scalar('Epsilon', epsilon, episode)
