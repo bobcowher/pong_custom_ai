@@ -174,9 +174,6 @@ class Agent():
 
                 next_obs, player_1_reward, player_2_reward, done, truncated, info = self.env.step(player_1_action=player_1_action, player_2_action=player_2_action)
 
-                if(done):
-                    break
-
                 player_1_next_obs, player_2_next_obs = self.process_observation(next_obs)
 
                 self.memory.store_transition(player_1_obs, player_1_action, player_1_reward, player_1_next_obs, done)
