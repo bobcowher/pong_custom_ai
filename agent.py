@@ -46,9 +46,9 @@ class Agent():
 
         self.memory = ReplayBuffer(max_size=max_buffer_size, input_shape=player_1_obs_stacked.shape, n_actions=self.env.action_space.n, input_device=self.device, output_device=self.device)
 
-        self.model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=obs.shape).to(self.device)
+        self.model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=player_1_obs_stacked.shape).to(self.device)
 
-        self.target_model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=obs.shape).to(self.device)
+        self.target_model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=player_1_obs_stacked.shape).to(self.device)
 
         # Initialize target networks with model parameters
         self.target_model.load_state_dict(self.model.state_dict())
@@ -100,6 +100,7 @@ class Agent():
 
     def eval(self, bot_difficulty="easy"):
         # Player 0 is mapping to player 1 for 0-index purposes.
+
         for eval_env in self.eval_envs:
             eval_env.bot_difficulty = bot_difficulty
         
@@ -111,6 +112,10 @@ class Agent():
 
             player_1_obs, player_2_obs = self.process_observation(obs)
 
+            self.init_frame_stack(player_1_obs, player_2_obs)
+            
+            player_1_obs_stacked, player_2_obs_stacked = self._get_stacked() 
+
             done = False
 
             episode_reward[player] = 0
@@ -120,17 +125,17 @@ class Agent():
                 reward = 0
 
                 if(player == 0):
-                    action = self.get_action(player_1_obs) 
+                    action = self.get_action(player_1_obs_stacked) 
                     next_obs, reward, _, done, truncated, info = self.eval_envs[player].step(player_1_action=action)
                 elif(player == 1):
-                    action = self.get_action(player_2_obs) 
+                    action = self.get_action(player_2_obs_stacked) 
                     next_obs, _, reward, done, truncated, info = self.eval_envs[player].step(player_2_action=action)
 
                 player_1_obs, player_2_obs = self.process_observation(next_obs)
+                self.push_frame(player_1_obs, player_2_obs)
+                player_1_obs_stacked, player_2_obs_stacked = self._get_stacked()
 
                 episode_reward[player] += reward
-
-                obs = next_obs
 
         return episode_reward[0], episode_reward[1]
                 
