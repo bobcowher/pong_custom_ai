@@ -44,7 +44,7 @@ class Agent():
 
         print(f"Player1 1 Obs Shape: {player_1_obs.shape}")
 
-        self.memory = ReplayBuffer(max_size=max_buffer_size, input_shape=player_1_obs.shape, n_actions=self.env.action_space.n, input_device=self.device, output_device=self.device)
+        self.memory = ReplayBuffer(max_size=max_buffer_size, input_shape=player_1_obs.shape, n_actions=self.env.action_space.n, input_device='cpu', output_device=self.device)
 
         self.model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=player_1_obs.shape).to(self.device)
 
@@ -81,8 +81,7 @@ class Agent():
 
     def process_observation(self, obs, clear_stack=False):
         # obs = torch.tensor(obs, dtype=torch.float32).permute(2,0,1)  
-        player_1_obs = torch.tensor(obs, dtype=torch.float32)  
-        player_2_obs = torch.flip(player_1_obs, dims=[2])
+        player_1_obs = player_2_obs = torch.tensor(obs, dtype=torch.float32)  
 
         if(len(self.frames_player_1) < self.frame_stack) or clear_stack:
             self.init_frame_stack(player_1_obs, player_2_obs)
@@ -92,6 +91,11 @@ class Agent():
 
         player_1_obs_stacked = torch.cat(tuple(self.frames_player_1), dim=0)     # (k,84,84)
         player_2_obs_stacked = torch.cat(tuple(self.frames_player_2), dim=0)
+
+        # This is here to denote player 1 or player 2 to the neural net. 
+        # I've attempted image flipping instead, and it always tends to favor one side over the other. 
+        player_1_obs_stacked[-1] = 0
+        player_2_obs_stacked[-1] = 255
 
         return player_1_obs_stacked, player_2_obs_stacked
 
