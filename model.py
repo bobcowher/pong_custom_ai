@@ -21,9 +21,9 @@ class Model(nn.Module):
 
         # Fully connected layers
         self.fc1 = nn.Linear(conv_output_size, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
-        self.fc3 = nn.Linear(hidden_dim, hidden_dim)
-        self.output = nn.Linear(hidden_dim, action_dim)
+        self.fc2 = nn.Linear(hidden_dim, int(hidden_dim / 2))
+        self.fc3 = nn.Linear(int(hidden_dim / 2), int(hidden_dim / 4))
+        self.output = nn.Linear(int(hidden_dim / 4), action_dim)
 
         # Initialize weights
         self.apply(self.weights_init)

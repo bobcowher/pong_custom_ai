@@ -18,13 +18,14 @@ from collections import deque
 
 class Agent():
 
-    def __init__(self, hidden_layer=512, learning_rate=0.0001, gamma=0.99, max_buffer_size=100000, eval=False, frame_stack=4) -> None:
+    def __init__(self, hidden_layer=512, learning_rate=0.0001, gamma=0.99, max_buffer_size=100000, eval=False, frame_stack=4, target_update_interval=10000) -> None:
 
         self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
         
         self.frame_stack = frame_stack
         self.frames_player_1 = deque(maxlen=frame_stack)
         self.frames_player_2 = deque(maxlen=frame_stack)
+        self.target_update_interval = target_update_interval
         
         if eval:
             self.model = Model(action_dim=3, hidden_dim=hidden_layer, observation_shape=(frame_stack,84,84)).to(self.device)
@@ -213,9 +214,8 @@ class Agent():
                     self.optimizer_1.step()
 
                     # Update the target models periodically
-                    if episode_steps % 4 == 0:
-                        soft_update(self.target_model, self.model)
-
+                    if total_steps % self.target_update_interval == 0:
+                        self.target_model.load_state_dict(self.model.state_dict())
 
             writer.add_scalar('Score/Player 1 Training', player_1_episode_reward, episode)
             writer.add_scalar('Score/Player 2 Training', player_2_episode_reward, episode)

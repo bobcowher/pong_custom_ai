@@ -14,14 +14,14 @@ epsilon_decay = 0.995
 gamma = 0.99
 max_buffer_size = 250000
 
-hidden_layer = 256 
+hidden_layer = 512 
 
 # print(observation.shape)
 
 # Constants
 start_time = time.perf_counter()
 
-summary_writer_suffix = f'dqn_lr={learning_rate}_bs={batch_size}_buffer={max_buffer_size}'
+summary_writer_suffix = f'dqn_lr={learning_rate}_bs={batch_size}_buffer={max_buffer_size}_funnel_network'
 
 agent = Agent(hidden_layer=hidden_layer,
               learning_rate=learning_rate,
