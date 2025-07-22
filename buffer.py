@@ -10,10 +10,13 @@ class ReplayBuffer:
 
         override = os.getenv("REPLAY_BUFFER_MEMORY")
 
-        if override and override.lower() in ["cpu", "cuda:0", "cuda:1"]:
+        if override in ["cpu", "cuda:0", "cuda:1"]:
+            print("Received replay buffer memory override.")
             self.input_device = override
         else:
             self.input_device  = input_device
+        
+        print(f"Replay buffer memory on: {self.input_device}")
 
         self.output_device = output_device
 
