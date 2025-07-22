@@ -229,11 +229,12 @@ class Pong(gym.Env):
     def fill_background(self):
         self.screen.fill(self.background_color)
 
-        player_1_score_surface = self.font.render(f'Score: {self.player_1_score}', True, self.player_1_color)
-        self.screen.blit(player_1_score_surface, ((self.window_width / 2) + 20, 10))
-        
-        player_2_score_surface = self.font.render(f'Score: {self.player_2_score}', True, self.player_2_color)
-        self.screen.blit(player_2_score_surface, ((self.window_width / 2) - player_2_score_surface.get_width() - 20, 10))
+        if(self.render_mode == "human"):
+            player_1_score_surface = self.font.render(f'Score: {self.player_1_score}', True, self.player_1_color)
+            self.screen.blit(player_1_score_surface, ((self.window_width / 2) + 20, 10))
+            
+            player_2_score_surface = self.font.render(f'Score: {self.player_2_score}', True, self.player_2_color)
+            self.screen.blit(player_2_score_surface, ((self.window_width / 2) - player_2_score_surface.get_width() - 20, 10))
 
 
     def mirror_action(self, action):
@@ -261,7 +262,7 @@ class Pong(gym.Env):
                 break
 
         observation = self._get_obs() 
-
+       
         return observation, total_player_1_reward, total_player_2_reward, done, truncated, info
 
 
@@ -315,6 +316,7 @@ class Pong(gym.Env):
                 truncated = True
 
         info = {}
+
 
         return player_1_reward, player_2_reward, done, truncated, info       
         
