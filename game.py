@@ -237,19 +237,8 @@ class Pong(gym.Env):
             self.screen.blit(player_2_score_surface, ((self.window_width / 2) - player_2_score_surface.get_width() - 20, 10))
 
 
-    def mirror_action(self, action):
-        if action == 1:  # up
-            return 2     # becomes down
-        elif action == 2:  # down
-            return 1     # becomes up
-        return 0          # stay
-        
-
     def step(self, player_1_action=None, player_2_action=None):
         
-        if self.player2 == "ai":
-            player_2_action = self.mirror_action(player_2_action)
-
         total_player_1_reward = 0
         total_player_2_reward = 0
         
