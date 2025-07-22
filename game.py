@@ -247,9 +247,9 @@ class Pong(gym.Env):
 
     def step(self, player_1_action=None, player_2_action=None):
         
-        # if self.player2 == "ai":
-        #     player_2_action = self.mirror_action(player_2_action)
-        #
+        if self.player2 == "ai":
+            player_2_action = self.mirror_action(player_2_action)
+
         total_player_1_reward = 0
         total_player_2_reward = 0
         
