@@ -1,12 +1,20 @@
 import torch
 import numpy as np
+import os
 
 class ReplayBuffer:
     def __init__(self, max_size, input_shape, n_actions,
                  input_device, output_device='cpu', frame_stack=4):
         self.mem_size = max_size
         self.mem_ctr  = 0
-        self.input_device  = input_device
+
+        override = os.getenv("REPLAY_BUFFER_MEMORY")
+
+        if override and override.lower() in ["cpu", "cuda:0", "cuda:1"]:
+            self.input_device = override
+        else:
+            self.input_device  = input_device
+
         self.output_device = output_device
 
         # States (uint8 saves ~4× RAM vs float32)
