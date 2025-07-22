@@ -44,7 +44,8 @@ class Agent():
 
         print(f"Player1 1 Obs Shape: {player_1_obs.shape}")
 
-        self.memory = ReplayBuffer(max_size=max_buffer_size, input_shape=player_1_obs.shape, n_actions=self.env.action_space.n, input_device=self.device, output_device=self.device)
+        self.player_1_memory = ReplayBuffer(max_size=max_buffer_size, input_shape=player_1_obs.shape, n_actions=self.env.action_space.n, input_device=self.device, output_device=self.device)
+        self.player_2_memory = ReplayBuffer(max_size=max_buffer_size, input_shape=player_2_obs.shape, n_actions=self.env.action_space.n, input_device=self.device, output_device=self.device)
 
         self.model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=player_1_obs.shape, obs_stack=frame_stack).to(self.device)
 
@@ -178,8 +179,8 @@ class Agent():
 
                 player_1_next_obs, player_2_next_obs = self.process_observation(next_obs)
 
-                self.memory.store_transition(player_1_obs, player_1_action, player_1_reward, player_1_next_obs, done)
-                self.memory.store_transition(player_2_obs, player_2_action, player_2_reward, player_2_next_obs, done)
+                self.player_1_memory.store_transition(player_1_obs, player_1_action, player_1_reward, player_1_next_obs, done)
+                self.player_2_memory.store_transition(player_2_obs, player_2_action, player_2_reward, player_2_next_obs, done)
 
                 player_1_obs = player_1_next_obs
                 player_2_obs = player_2_next_obs
@@ -189,8 +190,11 @@ class Agent():
                 episode_steps += 1
                 total_steps += 1
 
-                if self.memory.can_sample(batch_size):
-                    observations, actions, rewards, next_observations, dones = self.memory.sample_buffer(batch_size)
+                if self.player_1_memory.can_sample(batch_size):
+                    if(total_steps % 2 == 0):
+                        observations, actions, rewards, next_observations, dones = self.player_1_memory.sample_buffer(batch_size)
+                    else:
+                        observations, actions, rewards, next_observations, dones = self.player_2_memory.sample_buffer(batch_size)
 
                     dones = dones.unsqueeze(1).float()
 
