@@ -2,6 +2,8 @@ import torch
 import numpy as np
 import os
 
+from torch._C import device
+
 class ReplayBuffer:
     def __init__(self, max_size, input_shape, n_actions,
                  input_device, output_device='cpu', frame_stack=4):
@@ -24,7 +26,7 @@ class ReplayBuffer:
         self.state_memory      = torch.zeros(
             (max_size, *input_shape), dtype=torch.uint8, device=input_device
         )
-        self.next_state_memory = torch.zeros_like(self.state_memory)
+        self.next_state_memory = torch.zeros_like(self.state_memory, device=input_device)
 
         # Actions as scalar indices for torch.gather
         self.action_memory  = torch.zeros(max_size, dtype=torch.int64,
