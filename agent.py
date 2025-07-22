@@ -18,7 +18,7 @@ from collections import deque
 
 class Agent():
 
-    def __init__(self, hidden_layer=512, learning_rate=0.0001, gamma=0.99, max_buffer_size=100000, eval=False, frame_stack=4, target_update_interval=10000) -> None:
+    def __init__(self, hidden_layer=512, learning_rate=0.0001, gamma=0.99, max_buffer_size=100000, eval=False, frame_stack=3, target_update_interval=10000) -> None:
 
         self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
         
@@ -28,7 +28,7 @@ class Agent():
         self.target_update_interval = target_update_interval
         
         if eval:
-            self.model = Model(action_dim=3, hidden_dim=hidden_layer, observation_shape=(frame_stack,84,84)).to(self.device)
+            self.model = Model(action_dim=3, hidden_dim=hidden_layer, observation_shape=(frame_stack,84,84), obs_stack=frame_stack).to(self.device)
             self.model.load_the_model()
             return
 
@@ -46,9 +46,9 @@ class Agent():
 
         self.memory = ReplayBuffer(max_size=max_buffer_size, input_shape=player_1_obs.shape, n_actions=self.env.action_space.n, input_device=self.device, output_device=self.device)
 
-        self.model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=player_1_obs.shape).to(self.device)
+        self.model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=player_1_obs.shape, obs_stack=frame_stack).to(self.device)
 
-        self.target_model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=player_1_obs.shape).to(self.device)
+        self.target_model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=player_1_obs.shape, obs_stack=frame_stack).to(self.device)
 
         # Initialize target networks with model parameters
         self.target_model.load_state_dict(self.model.state_dict())
@@ -84,7 +84,12 @@ class Agent():
         player_1_obs = torch.tensor(obs, dtype=torch.float32)  
         player_2_obs = torch.flip(player_1_obs, dims=[2])
 
-        if(len(self.frames_player_1) < self.frame_stack) or clear_stack:
+        if(len(self.frames_player_1) < self.frame_stack):
+            self.init_frame_stack(player_1_obs, player_2_obs)
+
+            print(f"Clearing stack due to player 1 frames({self.frames_player_1}) under self.framestack {self.frame_stack}")
+            
+        if(clear_stack):
             self.init_frame_stack(player_1_obs, player_2_obs)
 
         self.frames_player_1.append(player_1_obs)
