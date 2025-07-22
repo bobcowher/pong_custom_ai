@@ -26,7 +26,9 @@ class ReplayBuffer:
         self.state_memory      = torch.zeros(
             (max_size, *input_shape), dtype=torch.uint8, device=input_device
         )
-        self.next_state_memory = torch.zeros_like(self.state_memory, device=input_device)
+        self.next_state_memory      = torch.zeros(
+            (max_size, *input_shape), dtype=torch.uint8, device=input_device
+        )
 
         # Actions as scalar indices for torch.gather
         self.action_memory  = torch.zeros(max_size, dtype=torch.int64,
