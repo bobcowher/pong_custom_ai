@@ -192,10 +192,22 @@ class Agent():
                 total_steps += 1
 
                 if self.player_1_memory.can_sample(batch_size):
-                    if(total_steps % 2 == 0):
-                        observations, actions, rewards, next_observations, dones = self.player_1_memory.sample_buffer(batch_size)
-                    else:
-                        observations, actions, rewards, next_observations, dones = self.player_2_memory.sample_buffer(batch_size)
+                    # if(total_steps % 2 == 0):
+                    #     observations, actions, rewards, next_observations, dones = self.player_1_memory.sample_buffer(batch_size)
+                    # else:
+                    #     observations, actions, rewards, next_observations, dones = self.player_2_memory.sample_buffer(batch_size)
+                    #
+                    s1, a1, r1, ns1, d1 = self.player_1_memory.sample_buffer(batch_size / 2)
+                    s2, a2, r2, ns2, d2 = self.player_2_memory.sample_buffer(batch_size / 2)
+
+                    # Combine and shuffle (optional)
+                    observations = torch.cat([s1, s2], dim=0)
+                    actions = torch.cat([a1, a2], dim=0)
+                    rewards = torch.cat([r1, r2], dim=0)
+                    next_observations = torch.cat([ns1, ns2], dim=0)
+                    dones = torch.cat([d1, d2], dim=0)
+
+                    # observations, actions, rewards, next_observations, dones = self.player_1_memory.sample_buffer(batch_size)
 
                     dones = dones.unsqueeze(1).float()
 
