@@ -286,12 +286,15 @@ class Pong(gym.Env):
 
         pygame.display.flip()
 
-        if(self.ball.x < 0):
+        # This fixes problems with agent imbalance
+        ball_center_x = self.ball.x + (self.ball.width // 2)
+
+        if ball_center_x < 0:
             self.player_1_score += 1
             player_1_reward += 1
             player_2_reward -= 1
             self.ball.spawn()
-        elif(self.ball.x > self.window_width):
+        elif ball_center_x > self.window_width:
             self.player_2_score += 1
             player_1_reward -= 1
             player_2_reward += 1
