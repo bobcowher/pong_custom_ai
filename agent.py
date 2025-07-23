@@ -1,4 +1,5 @@
 from pygame.event import clear
+from torch._C import dtype
 from buffer import ReplayBuffer
 from model import Model, soft_update, hard_update
 import torch
@@ -22,13 +23,14 @@ class Agent():
 
         self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
         
-        self.frame_stack = frame_stack
-        self.frames_player_1 = deque(maxlen=frame_stack)
-        self.frames_player_2 = deque(maxlen=frame_stack)
+        # The frame stack size is one higher than the actual length of the deque, because we're adding an identity frame later.
+        self.frame_stack_size = frame_stack + 1 
+        self.frame_stack = deque(maxlen=frame_stack)
+
         self.target_update_interval = target_update_interval
         
         if eval:
-            self.model = Model(action_dim=3, hidden_dim=hidden_layer, observation_shape=(frame_stack,84,84), obs_stack=frame_stack).to(self.device)
+            self.model = Model(action_dim=3, hidden_dim=hidden_layer, observation_shape=(self.frame_stack_size,84,84), obs_stack=self.frame_stack_size).to(self.device)
             self.model.load_the_model()
             return
 
@@ -47,9 +49,9 @@ class Agent():
         self.player_1_memory = ReplayBuffer(max_size=max_buffer_size, input_shape=player_1_obs.shape, n_actions=self.env.action_space.n, input_device=self.device, output_device=self.device)
         self.player_2_memory = ReplayBuffer(max_size=max_buffer_size, input_shape=player_2_obs.shape, n_actions=self.env.action_space.n, input_device=self.device, output_device=self.device)
 
-        self.model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=player_1_obs.shape, obs_stack=frame_stack).to(self.device)
+        self.model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=player_1_obs.shape, obs_stack=self.frame_stack_size).to(self.device)
 
-        self.target_model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=player_1_obs.shape, obs_stack=frame_stack).to(self.device)
+        self.target_model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=player_1_obs.shape, obs_stack=self.frame_stack_size).to(self.device)
 
         # Initialize target networks with model parameters
         self.target_model.load_state_dict(self.model.state_dict())
@@ -61,13 +63,12 @@ class Agent():
         print(f"Initialized agents on device: {self.device}")
 
 
-    def init_frame_stack(self, player_1_obs, player_2_obs):
+    def init_frame_stack(self, obs):
         """Call once after env.reset().  Pre-fill both deques."""
-        self.frames_player_1.clear()
-        self.frames_player_2.clear()
-        for _ in range(self.frame_stack):
-            self.frames_player_1.append(player_1_obs)           # original
-            self.frames_player_2.append(player_2_obs)
+        self.frame_stack.clear()
+
+        for _ in range(self.frame_stack_size):
+            self.frame_stack.append(obs)           # original
 
 
     def get_action(self, obs, model=None):
@@ -82,22 +83,22 @@ class Agent():
 
     def process_observation(self, obs, clear_stack=False):
         # obs = torch.tensor(obs, dtype=torch.float32).permute(2,0,1)  
-        player_1_obs = torch.tensor(obs, dtype=torch.float32)  
-        player_2_obs = torch.flip(player_1_obs, dims=[2])
+        obs = torch.tensor(obs, dtype=torch.float32)  
 
-        if(len(self.frames_player_1) < self.frame_stack):
-            self.init_frame_stack(player_1_obs, player_2_obs)
+        # player_2_obs = torch.flip(player_1_obs, dims=[2])
 
-            print(f"Clearing stack due to player 1 frames({self.frames_player_1}) under self.framestack {self.frame_stack}")
-            
-        if(clear_stack):
-            self.init_frame_stack(player_1_obs, player_2_obs)
+        if(len(self.frame_stack) < self.frame_stack_size - 1) or clear_stack:
+            self.init_frame_stack(obs)
 
-        self.frames_player_1.append(player_1_obs)
-        self.frames_player_2.append(player_2_obs)
+        self.frame_stack.append(obs)    # Add identity channel (all zeros for P1, all 255s for P2)
+    
+        id_p1 = torch.zeros((1, 84, 84), dtype=torch.float32)
+        id_p2 = torch.ones((1, 84, 84), dtype=torch.float32) * 255.0
 
-        player_1_obs_stacked = torch.cat(tuple(self.frames_player_1), dim=0)     # (k,84,84)
-        player_2_obs_stacked = torch.cat(tuple(self.frames_player_2), dim=0)
+        obs_stacked = torch.cat(tuple(self.frame_stack), dim=0)     # (k,84,84)
+        
+        player_1_obs_stacked = torch.cat([obs_stacked, id_p1], dim=0)  # (4, 84, 84)
+        player_2_obs_stacked = torch.cat([obs_stacked, id_p2], dim=0)
 
         return player_1_obs_stacked, player_2_obs_stacked
 
