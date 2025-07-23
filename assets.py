@@ -52,6 +52,7 @@ class Ball:
         self.player_1_paddle = player_1_paddle
         self.player_2_paddle = player_2_paddle
         self.ball_color = (255, 255, 255)
+        self.last_serve_left = False
 
         self.spawn()
 
@@ -59,7 +60,13 @@ class Ball:
     def spawn(self):
         self.x = self.window_width / 2
         self.y = self.window_height / 2
-        self.vx = random.choice([-12, -10, -8, 8, 10, 12])
+
+        speed = random.choice([8, 10, 12])
+
+        # Alternate direction
+        self.last_serve_left = not self.last_serve_left
+        self.vx = -speed if self.last_serve_left else speed
+
         self.vy = random.choice([-6, -4, -2, 2, 4, 6])
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
 

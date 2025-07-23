@@ -147,6 +147,8 @@ class Pong(gym.Env):
         # Convert to grayscale
         grayscale = cv2.cvtColor(downscaled_image, cv2.COLOR_RGB2GRAY)
 
+        grayscale[grayscale != 0] = 255
+
         # Convert to PyTorch tensor
         observation = torch.from_numpy(grayscale).float().unsqueeze(0)
 
