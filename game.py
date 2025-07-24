@@ -269,9 +269,13 @@ class Pong(gym.Env):
 
         player_1_reward = 0
         player_2_reward = 0
-
-        self.player_1_paddle.move(player_1_action)
-        self.player_2_paddle.move(player_2_action)
+        # randomise which paddle is updated first
+        if random.random() < 0.5:
+            self.player_1_paddle.move(player_1_action)
+            self.player_2_paddle.move(player_2_action)
+        else:
+            self.player_2_paddle.move(player_2_action)
+            self.player_1_paddle.move(player_1_action)
 
         self.fill_background()
         self.player_1_paddle.draw(screen=self.screen)
