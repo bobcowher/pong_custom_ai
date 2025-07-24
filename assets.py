@@ -71,38 +71,41 @@ class Ball:
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
 
 
-    def generate_new_rect(self):
-        new_y = self.y + self.vy
-        new_x = self.x + self.vx
-    
-        new_rect = pygame.Rect(new_x, new_y, self.width, self.height)
-
-        return new_x, new_y, new_rect
-
+    def get_step_increment(self, vel):
+        if(vel > 0):
+            return 1
+        else:
+            return -1
 
     def move(self):
-        
-        collision = False
+        # print("Original X: ", self.x)
+        # print("Original Y: ", self.y)
 
-        # First pass at new_x and new_y
-        new_x, new_y, new_rect = self.generate_new_rect()
+        new_x = self.x 
+        new_y = self.y
+        x_step = self.get_step_increment(self.vx)
+        y_step = self.get_step_increment(self.vy)
+        new_rect = None
 
-        if(not (0 <= new_y <= (self.window_height - self.height))):
-            self.vy = np.clip(self.vy * -1, -20, 20)
+        for i in range(abs(int(self.vy))):
+            new_y = new_y + y_step
+            if(not (0 <= new_y <= (self.window_height - self.height))):
+                self.vy = np.clip(self.vy * -1, -20, 20)
+                break
+            new_rect = pygame.Rect(new_x, new_y, self.width, self.height)
 
+        for i in range(abs(int(self.vx))):
+            new_x = new_x + x_step
+            new_rect = pygame.Rect(new_x, new_y, self.width, self.height)
 
-        for paddle in [self.player_1_paddle, self.player_2_paddle]:
-               if(new_rect.colliderect(paddle)):
-                    self.vx = (self.vx * 1.1) * -1 # Invert direction and speed up the ball slightly
-        
-        new_x, new_y, new_rect = self.generate_new_rect()
+            if(new_rect.colliderect(self.player_1_paddle) or new_rect.colliderect(self.player_2_paddle)):
+                self.vx = (self.vx + x_step) * -1 # Invert direction and speed up the ball slightly
+                break
 
         self.x = new_x
         self.y = new_y
         self.rect = new_rect
 
-#        self.rect.topleft = (self.x, self.y)
-    
 
     def draw(self, screen):
         pygame.draw.rect(screen, self.ball_color,(self.rect.x, self.rect.y, self.width, self.height))
