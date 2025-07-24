@@ -147,6 +147,8 @@ class Pong(gym.Env):
         # Convert to grayscale
         grayscale = cv2.cvtColor(downscaled_image, cv2.COLOR_RGB2GRAY)
 
+        grayscale[grayscale != 0] = 255
+
         # Convert to PyTorch tensor
         observation = torch.from_numpy(grayscale).float().unsqueeze(0)
 
@@ -267,9 +269,13 @@ class Pong(gym.Env):
 
         player_1_reward = 0
         player_2_reward = 0
-
-        self.player_1_paddle.move(player_1_action)
-        self.player_2_paddle.move(player_2_action)
+        # randomise which paddle is updated first
+        if random.random() < 0.5:
+            self.player_1_paddle.move(player_1_action)
+            self.player_2_paddle.move(player_2_action)
+        else:
+            self.player_2_paddle.move(player_2_action)
+            self.player_1_paddle.move(player_1_action)
 
         self.fill_background()
         self.player_1_paddle.draw(screen=self.screen)
@@ -284,12 +290,15 @@ class Pong(gym.Env):
 
         pygame.display.flip()
 
-        if(self.ball.x < 0):
+        # This fixes problems with agent imbalance
+        ball_center_x = self.ball.x + (self.ball.width // 2)
+
+        if ball_center_x < 0:
             self.player_1_score += 1
             player_1_reward += 1
             player_2_reward -= 1
             self.ball.spawn()
-        elif(self.ball.x > self.window_width):
+        elif ball_center_x > self.window_width:
             self.player_2_score += 1
             player_1_reward -= 1
             player_2_reward += 1
