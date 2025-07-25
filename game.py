@@ -10,6 +10,8 @@ import numpy as np
 import cv2 
 import torch
 import gymnasium as gym
+from util import *
+from util import show_debug_image
 
 class Pong(gym.Env):
 
@@ -147,6 +149,8 @@ class Pong(gym.Env):
         # Convert to grayscale
         grayscale = cv2.cvtColor(downscaled_image, cv2.COLOR_RGB2GRAY)
 
+        grayscale[grayscale != 0] = 255
+
         # Convert to PyTorch tensor
         observation = torch.from_numpy(grayscale).float().unsqueeze(0)
 
@@ -191,14 +195,18 @@ class Pong(gym.Env):
 
 
         obs = self._get_obs()
-        player_1_obs, player_2_obs = self.ai_agent.process_observation(obs)
+        obs = self.ai_agent.process_observation(obs)
+
+        show_debug_image(obs)
 
         action = None
 
         if(player == 1):
-           action = self.ai_agent.get_action(player_1_obs) 
+           action = self.ai_agent.get_action(obs, player=1) 
         elif(player == 2):
-           action = self.ai_agent.get_action(player_2_obs)
+           action = self.ai_agent.get_action(obs, player=2)
+
+
 
         return action 
 
