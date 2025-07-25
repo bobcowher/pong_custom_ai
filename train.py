@@ -12,7 +12,7 @@ epsilon = 1
 min_epsilon = 0.1
 epsilon_decay = 0.998
 gamma = 0.99
-max_buffer_size = 500000
+max_buffer_size = 200000
 
 hidden_layer = 512 
 

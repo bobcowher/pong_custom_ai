@@ -23,7 +23,8 @@ class Model(nn.Module):
         self.fc1 = nn.Linear(conv_output_size, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, int(hidden_dim / 2))
         self.fc3 = nn.Linear(int(hidden_dim / 2), int(hidden_dim / 4))
-        self.output = nn.Linear(int(hidden_dim / 4), action_dim)
+        self.output1 = nn.Linear(int(hidden_dim / 4), action_dim)
+        self.output2 = nn.Linear(int(hidden_dim / 4), action_dim)
 
         # Initialize weights
         self.apply(self.weights_init)
@@ -49,9 +50,10 @@ class Model(nn.Module):
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
         
-        output = self.output(x)
+        output1 = self.output1(x)
+        output2 = self.output2(x)
 
-        return output
+        return output1, output2
 
     def save_the_model(self, filename='models/latest.pt'):
         torch.save(self.state_dict(), filename)
@@ -72,6 +74,7 @@ class Model(nn.Module):
             nn.init.xavier_normal_(m.weight)
             if m.bias is not None:
                 nn.init.constant_(m.bias, 0)
+
 
 # Helper Functions
 def soft_update(target, source, tau=0.005):
