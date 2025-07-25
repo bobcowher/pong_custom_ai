@@ -137,39 +137,40 @@ class Agent():
         if not buffer.can_sample(batch_size):
             return
 
-        # Sample from buffer
-        observations, actions, rewards, next_observations, dones = buffer.sample_buffer(batch_size)
-        dones = dones.unsqueeze(1).float()
-        actions = actions.unsqueeze(1).long()
-        rewards = rewards.unsqueeze(1)
+        # ── 1. Sample  ───────────────────────────────────────
+        obs, actions, rewards, next_obs, dones = buffer.sample_buffer(batch_size)
+        actions  = actions.unsqueeze(1).long()
+        rewards  = rewards.unsqueeze(1)
+        dones    = dones.unsqueeze(1).float()
 
-        # Get Q-values from both heads
-        q1, q2 = self.model(observations)
-        q1_target, q2_target = self.target_model(next_observations)
+        # ── 2. Q(s,a) on current state  ──────────────────────
+        q1, q2          = self.model(obs)                # main network
+        q_current_head  = q1 if player_id == 1 else q2
+        q_sa            = q_current_head.gather(1, actions)
 
-        # Select appropriate head
-        q_values = q1 if player_id == 1 else q2
-        target_q_values = q1_target if player_id == 1 else q2_target
+        # ── 3. Double-DQN target on *next* state ────────────
+        #    3a. Greedy action from MAIN net (next state)
+        next_q1_main, next_q2_main = self.model(next_obs)
+        next_head_main             = next_q1_main if player_id == 1 else next_q2_main
+        next_actions               = torch.argmax(next_head_main, dim=1, keepdim=True)  # a* = argmax_a Q_main
 
-        # Get current Q(s,a)
-        qsa = q_values.gather(1, actions)
+        #    3b. Q-value of that action from TARGET net
+        next_q1_tgt, next_q2_tgt   = self.target_model(next_obs)
+        next_head_tgt              = next_q1_tgt if player_id == 1 else next_q2_tgt
+        next_q_sa                  = next_head_tgt.gather(1, next_actions)              # Q_target(s', a*)
 
-        # Double DQN: get next actions using main network
-        next_actions = torch.argmax(q_values, dim=1, keepdim=True)
-        next_qsa = target_q_values.gather(1, next_actions)
+        # ── 4. Bellman target ───────────────────────────────
+        targets = rewards + (1 - dones) * self.gamma * next_q_sa.detach()
 
-        # Bellman target
-        targets = rewards + (1 - dones) * self.gamma * next_qsa
-
-        # Loss and optimization
-        loss = F.mse_loss(qsa, targets.detach())
+        # ── 5. Loss & optimisation ──────────────────────────
+        loss = F.mse_loss(q_sa, targets)
         writer.add_scalar(f"Loss/Player{player_id}", loss.item(), total_steps)
 
-        self.model.zero_grad()
+        self.optimizer_1.zero_grad()
         loss.backward()
         self.optimizer_1.step()
 
-        # Target network update
+        # ── 6. Periodic target network update ───────────────
         if total_steps % self.target_update_interval == 0:
             self.target_model.load_state_dict(self.model.state_dict())
 
