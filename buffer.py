@@ -1,27 +1,42 @@
 import torch
 import numpy as np
+import os
+
+from torch._C import device
 
 class ReplayBuffer:
     def __init__(self, max_size, input_shape, n_actions,
                  input_device, output_device='cpu', frame_stack=4):
         self.mem_size = max_size
         self.mem_ctr  = 0
-        self.input_device  = input_device
+
+        override = os.getenv("REPLAY_BUFFER_MEMORY")
+
+        if override in ["cpu", "cuda:0", "cuda:1"]:
+            print("Received replay buffer memory override.")
+            self.input_device = override
+        else:
+            self.input_device  = input_device
+        
+        print(f"Replay buffer memory on: {self.input_device}")
+
         self.output_device = output_device
 
         # States (uint8 saves ~4× RAM vs float32)
         self.state_memory      = torch.zeros(
-            (max_size, *input_shape), dtype=torch.uint8, device=input_device
+            (max_size, *input_shape), dtype=torch.uint8, device=self.input_device
         )
-        self.next_state_memory = torch.zeros_like(self.state_memory)
+        self.next_state_memory      = torch.zeros(
+            (max_size, *input_shape), dtype=torch.uint8, device=self.input_device
+        )
 
         # Actions as scalar indices for torch.gather
         self.action_memory  = torch.zeros(max_size, dtype=torch.int64,
-                                          device=input_device)
+                                          device=self.input_device)
         self.reward_memory  = torch.zeros(max_size, dtype=torch.float32,
-                                          device=input_device)
+                                          device=self.input_device)
         self.terminal_memory = torch.zeros(max_size, dtype=torch.bool,
-                                           device=input_device)
+                                           device=self.input_device)
 
     # ------------------------------------------------------------------ #
 
