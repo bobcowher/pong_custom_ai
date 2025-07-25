@@ -52,7 +52,8 @@ class Ball:
         self.player_1_paddle = player_1_paddle
         self.player_2_paddle = player_2_paddle
         self.ball_color = (255, 255, 255)
-        self.last_serve_left = False
+        # Randomize initial serve direction to avoid bias
+        self.last_serve_left = random.choice([True, False])
 
         self.spawn()
 
@@ -85,7 +86,7 @@ class Ball:
         new_y = self.y
         x_step = self.get_step_increment(self.vx)
         y_step = self.get_step_increment(self.vy)
-        new_rect = None
+        new_rect = pygame.Rect(new_x, new_y, self.width, self.height)
 
         for i in range(abs(int(self.vy))):
             new_y = new_y + y_step
@@ -99,7 +100,7 @@ class Ball:
             new_rect = pygame.Rect(new_x, new_y, self.width, self.height)
 
             if(new_rect.colliderect(self.player_1_paddle) or new_rect.colliderect(self.player_2_paddle)):
-                self.vx = (self.vx + x_step) * -1 # Invert direction and speed up the ball slightly
+                self.vx = (abs(self.vx) + 1) * (-1 if self.vx > 0 else 1) # Invert direction and always speed up by 1
                 break
 
         self.x = new_x

@@ -190,11 +190,17 @@ class Agent():
                 episode_steps += 1
                 total_steps += 1
 
-                if self.player_1_memory.can_sample(batch_size):
-                    if(total_steps % 2 == 0):
-                        observations, actions, rewards, next_observations, dones = self.player_1_memory.sample_buffer(batch_size)
-                    else:
-                        observations, actions, rewards, next_observations, dones = self.player_2_memory.sample_buffer(batch_size)
+                if self.player_1_memory.can_sample(batch_size // 2) and self.player_2_memory.can_sample(batch_size // 2):
+                    # Sample from both buffers equally
+                    obs1, act1, rew1, next_obs1, done1 = self.player_1_memory.sample_buffer(batch_size // 2)
+                    obs2, act2, rew2, next_obs2, done2 = self.player_2_memory.sample_buffer(batch_size // 2)
+                    
+                    # Concatenate samples from both players
+                    observations = torch.cat([obs1, obs2], dim=0)
+                    actions = torch.cat([act1, act2], dim=0)
+                    rewards = torch.cat([rew1, rew2], dim=0)
+                    next_observations = torch.cat([next_obs1, next_obs2], dim=0)
+                    dones = torch.cat([done1, done2], dim=0)
 
                     dones = dones.unsqueeze(1).float()
 
