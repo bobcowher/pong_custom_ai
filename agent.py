@@ -225,10 +225,9 @@ class Agent():
                 episode_steps += 1
                 total_steps += 1
 
-                if self.player_1_memory.can_sample(batch_size):
+                if total_steps % 2 == 0:
                     self.learn(self.player_1_memory, 1, batch_size, total_steps, writer) 
-                
-                if self.player_2_memory.can_sample(batch_size):
+                else:
                     self.learn(self.player_2_memory, 2, batch_size, total_steps, writer) 
 
             writer.add_scalar('Score/Player 1 Training', player_1_episode_reward, episode)
