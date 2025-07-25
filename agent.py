@@ -68,7 +68,7 @@ class Agent():
 
     def get_action(self, obs, player=2):
 
-        if(player == 1):
+        if(player == 2):
             obs = torch.flip(obs, dims=[2])
 
         q_values = self.model.forward(obs.unsqueeze(0).to(self.device))[0]
@@ -171,7 +171,7 @@ class Agent():
 
                 next_obs = self.process_observation(next_obs)
 
-                self.memory.store_transition(obs, player_2_action, player_2_reward, next_obs, done)
+                self.memory.store_transition(obs, player_1_action, player_1_reward, next_obs, done)
 
                 obs = next_obs                
 
