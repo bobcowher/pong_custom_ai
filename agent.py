@@ -23,8 +23,7 @@ class Agent():
         self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
         
         self.frame_stack = frame_stack
-        self.frames_player_1 = deque(maxlen=frame_stack)
-        self.frames_player_2 = deque(maxlen=frame_stack)
+        self.frames = deque(maxlen=frame_stack)
         self.target_update_interval = target_update_interval
         
         if eval:
@@ -40,15 +39,15 @@ class Agent():
 
         obs, info = self.env.reset()
 
-        player_1_obs, player_2_obs = self.process_observation(obs, clear_stack=True)
+        obs = self.process_observation(obs, clear_stack=True)
 
-        print(f"Player1 1 Obs Shape: {player_1_obs.shape}")
+        print(f"Player1 1 Obs Shape: {obs.shape}")
 
-        self.memory = ReplayBuffer(max_size=max_buffer_size, input_shape=player_1_obs.shape, n_actions=self.env.action_space.n, input_device=self.device, output_device=self.device)
+        self.memory = ReplayBuffer(max_size=max_buffer_size, input_shape=obs.shape, n_actions=self.env.action_space.n, input_device=self.device, output_device=self.device)
 
-        self.model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=player_1_obs.shape, obs_stack=frame_stack).to(self.device)
+        self.model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=obs.shape, obs_stack=frame_stack).to(self.device)
 
-        self.target_model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=player_1_obs.shape, obs_stack=frame_stack).to(self.device)
+        self.target_model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=obs.shape, obs_stack=frame_stack).to(self.device)
 
         # Initialize target networks with model parameters
         self.target_model.load_state_dict(self.model.state_dict())
@@ -60,18 +59,17 @@ class Agent():
         print(f"Initialized agents on device: {self.device}")
 
 
-    def init_frame_stack(self, player_1_obs, player_2_obs):
+    def init_frame_stack(self, obs):
         """Call once after env.reset().  Pre-fill both deques."""
-        self.frames_player_1.clear()
-        self.frames_player_2.clear()
+        self.frames.clear()
         for _ in range(self.frame_stack):
-            self.frames_player_1.append(player_1_obs)           # original
-            self.frames_player_2.append(player_2_obs)
+            self.frames.append(obs)
 
 
-    def get_action(self, obs, model=None):
-        if model == None:
-            model = self.model
+    def get_action(self, obs, player=2):
+
+        if(player == 1):
+            obs = torch.flip(obs, dims=[2])
 
         q_values = self.model.forward(obs.unsqueeze(0).to(self.device))[0]
         action = torch.argmax(q_values, dim=-1).item()
@@ -81,24 +79,19 @@ class Agent():
 
     def process_observation(self, obs, clear_stack=False):
         # obs = torch.tensor(obs, dtype=torch.float32).permute(2,0,1)  
-        player_1_obs = torch.tensor(obs, dtype=torch.float32)  
-        player_2_obs = torch.flip(player_1_obs, dims=[2])
+        obs = torch.tensor(obs, dtype=torch.float32)  
 
-        if(len(self.frames_player_1) < self.frame_stack):
-            self.init_frame_stack(player_1_obs, player_2_obs)
-
-            print(f"Clearing stack due to player 1 frames({self.frames_player_1}) under self.framestack {self.frame_stack}")
+        if(len(self.frames) < self.frame_stack):
+            self.init_frame_stack(obs)
             
         if(clear_stack):
-            self.init_frame_stack(player_1_obs, player_2_obs)
+            self.init_frame_stack(obs)
 
-        self.frames_player_1.append(player_1_obs)
-        self.frames_player_2.append(player_2_obs)
+        self.frames.append(obs)
 
-        player_1_obs_stacked = torch.cat(tuple(self.frames_player_1), dim=0)     # (k,84,84)
-        player_2_obs_stacked = torch.cat(tuple(self.frames_player_2), dim=0)
+        obs_stacked = torch.cat(tuple(self.frames), dim=0)
 
-        return player_1_obs_stacked, player_2_obs_stacked
+        return obs_stacked
 
 
     def eval(self, bot_difficulty="easy"):
@@ -113,7 +106,7 @@ class Agent():
 
             obs, info = self.eval_envs[player].reset()
 
-            player_1_obs, player_2_obs = self.process_observation(obs, clear_stack=True)
+            obs = self.process_observation(obs, clear_stack=True)
 
             done = False
 
@@ -124,13 +117,13 @@ class Agent():
                 reward = 0
 
                 if(player == 0):
-                    action = self.get_action(player_1_obs) 
+                    action = self.get_action(obs, player=1) 
                     next_obs, reward, _, done, truncated, info = self.eval_envs[player].step(player_1_action=action)
                 elif(player == 1):
-                    action = self.get_action(player_2_obs) 
+                    action = self.get_action(obs, player=2) # TODO - Fix this funky naming logic later 
                     next_obs, _, reward, done, truncated, info = self.eval_envs[player].step(player_2_action=action)
 
-                player_1_obs, player_2_obs = self.process_observation(next_obs)
+                obs = self.process_observation(next_obs)
 
                 episode_reward[player] += reward
 
@@ -153,7 +146,7 @@ class Agent():
             player_2_episode_reward = 0
             obs, info = self.env.reset()
 
-            player_1_obs, player_2_obs = self.process_observation(obs)
+            obs = self.process_observation(obs)
 
             episode_steps = 0
 
@@ -164,25 +157,23 @@ class Agent():
                 if random.random() < epsilon:
                     player_1_action = self.env.action_space.sample()
                 else:
-                    player_1_action = self.get_action(player_1_obs)
+                    player_1_action = self.get_action(obs, player=1)
                    
                 if random.random() < epsilon:
                     player_2_action = self.env.action_space.sample()
                 else:
-                    player_2_action = self.get_action(player_2_obs) 
+                    player_2_action = self.get_action(obs, player=2) 
 
                 player_1_reward = 0
                 player_2_reward = 0
 
                 next_obs, player_1_reward, player_2_reward, done, truncated, info = self.env.step(player_1_action=player_1_action, player_2_action=player_2_action)
 
-                player_1_next_obs, player_2_next_obs = self.process_observation(next_obs)
+                next_obs = self.process_observation(next_obs)
 
-                self.memory.store_transition(player_1_obs, player_1_action, player_1_reward, player_1_next_obs, done)
-                self.memory.store_transition(player_2_obs, player_2_action, player_2_reward, player_2_next_obs, done)
+                self.memory.store_transition(obs, player_2_action, player_2_reward, next_obs, done)
 
-                player_1_obs = player_1_next_obs
-                player_2_obs = player_2_next_obs
+                obs = next_obs                
 
                 player_1_episode_reward += player_1_reward
                 player_2_episode_reward += player_2_reward
