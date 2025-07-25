@@ -189,42 +189,44 @@ class Agent():
                 episode_steps += 1
                 total_steps += 1
 
+
                 if self.memory.can_sample(batch_size):
-                    observations, actions, rewards, next_observations, dones = self.memory.sample_buffer(batch_size)
+                    # 1 — sample & reshape
+                    observations, actions, rewards, next_observations, dones = \
+                        self.memory.sample_buffer(batch_size)
 
-                    dones = dones.unsqueeze(1).float()
+                    actions  = actions.unsqueeze(1).long()
+                    rewards  = rewards.unsqueeze(1)
+                    dones    = dones.unsqueeze(1).float()
 
-                    # Current Q-values from both models
-                    q_values = self.model(observations)
-                    actions = actions.unsqueeze(1).long()
-                    qsa_batch = q_values.gather(1, actions)
+                    # 2 — Q(s,a) with the online network
+                    q_values      = self.model(observations)
+                    q_sa          = q_values.gather(1, actions)
 
-                    # Action selection using the main models
-                    next_actions = torch.argmax(self.model(next_observations), dim=1, keepdim=True)
+                    # 3 — Double-DQN target  ─────── ★ only changes below ★ ───────
+                    with torch.no_grad():                                    # ★ no grads
+                        next_actions = torch.argmax(
+                            self.model(next_observations), dim=1, keepdim=True
+                        )                                                    # ★ a* from online net
+                        next_q = self.target_model(next_observations).gather(1, next_actions)        # ★ Q_target(s',a*)
 
-                    # Q-value evaluation using the target models
-                    next_q_values = self.target_model(next_observations).gather(1, next_actions)
+                        targets = rewards + (1 - dones) * self.gamma * next_q
 
-                    # Compute the target using Double DQN with minimization
-                    target_b = rewards.unsqueeze(1) + (1 - dones) * self.gamma * next_q_values
-
-                    # Calculate the loss for both models
-                    loss = F.mse_loss(qsa_batch, target_b.detach())
-
+                    # 4 — loss & optimise
+                    loss = F.mse_loss(q_sa, targets)
                     writer.add_scalar("Loss/model", loss.item(), total_steps)
 
-                    # Backpropagation and optimization step for both models
-                    self.model.zero_grad()
+                    self.optimizer_1.zero_grad()
                     loss.backward()
                     self.optimizer_1.step()
 
-                    # Update the target models periodically
+                    # 5 — target-net sync
                     if total_steps % self.target_update_interval == 0:
                         self.target_model.load_state_dict(self.model.state_dict())
+            
 
             writer.add_scalar('Score/Player 1 Training', player_1_episode_reward, episode)
             writer.add_scalar('Score/Player 2 Training', player_2_episode_reward, episode)
-
 
             if episode > 0 and (episode % 100 == 0):
 
