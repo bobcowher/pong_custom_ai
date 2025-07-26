@@ -65,17 +65,47 @@ class Agent():
         for _ in range(self.frame_stack):
             self.frames.append(obs)
 
+    def save_debug_frame(self, frame_tensor, p1_score, p2_score, episode, step):
+        """
+        Saves the most recent frame from a stacked observation tensor (C,84,84).
+        
+        Parameters:
+        - frame_tensor: torch.Tensor of shape (C, 84, 84) where C >= 1
+        - p1_score, p2_score: ints
+        - episode, step: ints for naming
+        """
+        os.makedirs("debug", exist_ok=True)
+
+        # Use the most recent frame (last in stack)
+        if frame_tensor.ndim != 3 or frame_tensor.shape[1:] != (84, 84):
+            raise ValueError(f"Expected (C,84,84), got {frame_tensor.shape}")
+        
+        latest_frame = frame_tensor[-1].cpu().numpy()  # grab last channel (84,84)
+        latest_frame = np.clip(latest_frame, 0, 255).astype(np.uint8)
+        frame_bgr = cv2.cvtColor(latest_frame, cv2.COLOR_GRAY2BGR)
+
+        # Add score text
+        label = f"P1: {p1_score} | P2: {p2_score}"
+        cv2.putText(frame_bgr, label, (4, 12), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
+
+        # Save image
+        filename = f"debug/frame_ep{episode}_step{step}_p1_{p1_score}_p2_{p2_score}.png"
+        cv2.imwrite(filename, frame_bgr)
+
 
     def get_action(self, obs, player=2):
 
         if(player == 2):
-            obs = torch.flip(obs, dims=[2])
-
+            obs = self.flip_obs(obs) 
+        #
         q_values = self.model.forward(obs.unsqueeze(0).to(self.device))[0]
         action = torch.argmax(q_values, dim=-1).item()
 
         return action
 
+
+    def flip_obs(self, obs):
+        return torch.flip(obs, dims=[2])
 
     def process_observation(self, obs, clear_stack=False):
         # obs = torch.tensor(obs, dtype=torch.float32).permute(2,0,1)  
@@ -168,10 +198,14 @@ class Agent():
                 player_2_reward = 0
 
                 next_obs, player_1_reward, player_2_reward, done, truncated, info = self.env.step(player_1_action=player_1_action, player_2_action=player_2_action)
-
+    
+                #if(player_1_reward != 0):
+                #    self.save_debug_frame(obs, player_1_reward, player_2_reward, episode, episode_steps)
+                
                 next_obs = self.process_observation(next_obs)
 
                 self.memory.store_transition(obs, player_1_action, player_1_reward, next_obs, done)
+                self.memory.store_transition(self.flip_obs(obs), player_2_action, player_2_reward, self.flip_obs(next_obs), done)
 
                 obs = next_obs                
 
@@ -215,6 +249,10 @@ class Agent():
                     if total_steps % self.target_update_interval == 0:
                         self.target_model.load_state_dict(self.model.state_dict())
             
+                    if total_steps % 1000 == 0:
+                        _, _, rewards, _, _ = self.memory.sample_buffer(16)
+                        print("Sampled Player 1 rewards:", rewards.squeeze().tolist())
+
 
             writer.add_scalar('Score/Player 1 Training', player_1_episode_reward, episode)
             writer.add_scalar('Score/Player 2 Training', player_2_episode_reward, episode)
