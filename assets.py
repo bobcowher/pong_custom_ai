@@ -52,8 +52,9 @@ class Ball:
         self.player_1_paddle = player_1_paddle
         self.player_2_paddle = player_2_paddle
         self.ball_color = (255, 255, 255)
-        self.last_serve_left = False
 
+        self.last_serve_left = random.choice([True, False])
+        
         self.spawn()
 
 
