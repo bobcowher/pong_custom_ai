@@ -2,7 +2,7 @@ from agent import Agent
 import time
 from game import Pong
 
-episodes = 20000
+episodes = 10000
 max_episode_steps = 10000
 total_steps = 0
 
@@ -10,9 +10,10 @@ batch_size = 64
 learning_rate = 0.0001
 epsilon = 1
 min_epsilon = 0.1
-epsilon_decay = 0.999
+epsilon_decay = 0.995
 gamma = 0.99
-max_buffer_size = 500000
+max_buffer_size = 400000
+target_update_interval = 1000
 
 hidden_layer = 512 
 
@@ -21,12 +22,13 @@ hidden_layer = 512
 # Constants
 start_time = time.perf_counter()
 
-summary_writer_suffix = f'dqn_lr={learning_rate}_bs={batch_size}_buffer={max_buffer_size}_funnel_network'
+summary_writer_suffix = f'dqn_lr={learning_rate}_bs={batch_size}_buffer={max_buffer_size}_tui={target_update_interval}'
 
 agent = Agent(hidden_layer=hidden_layer,
               learning_rate=learning_rate,
               gamma=gamma,
-              max_buffer_size=max_buffer_size)
+              max_buffer_size=max_buffer_size,
+              target_update_interval=target_update_interval)
 
 # Training Phase 1
 
