@@ -42,7 +42,7 @@ class ReplayBuffer:
 
     def can_sample(self, batch_size: int) -> bool:
         """Require at least 5×batch_size transitions before sampling."""
-        return self.mem_ctr >= batch_size * 5
+        return self.mem_ctr >= batch_size * 500
 
     # ------------------------------------------------------------------ #
 
