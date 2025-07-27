@@ -1,4 +1,5 @@
 from pygame.event import clear
+import matplotlib.pyplot as plt
 from buffer import ReplayBuffer
 from model import Model, soft_update, hard_update
 import torch
@@ -26,12 +27,15 @@ class Agent():
         self.frames = deque(maxlen=frame_stack)
         self.target_update_interval = target_update_interval
         
+        self.debug_fig = None  # <- add this to your Agent init
+        self.debug_axes = []
+        
         if eval:
             self.model = Model(action_dim=3, hidden_dim=hidden_layer, observation_shape=(frame_stack,84,84), obs_stack=frame_stack).to(self.device)
             self.model.load_the_model()
             return
 
-        self.env = Pong(player1="ai", player2="ai", render_mode="rgbarray")
+        self.env = Pong(player1="ai", player2="bot", render_mode="rgbarray")
         self.eval_envs = [Pong(player1="ai", player2="bot", render_mode="rgbarray"),
                           Pong(player1="bot", player2="ai", render_mode="rgbarray")]
 
@@ -55,7 +59,6 @@ class Agent():
         self.optimizer_1 = optim.Adam(self.model.parameters(), lr=learning_rate)
 
         self.learning_rate = learning_rate
-
         print(f"Initialized agents on device: {self.device}")
 
 
@@ -64,6 +67,37 @@ class Agent():
         self.frames.clear()
         for _ in range(self.frame_stack):
             self.frames.append(obs)
+
+    def show_stacked_frames(self, obs, flipped_obs, title="Stacked Frames Comparison"):
+        """
+        Show both regular and flipped observation stacks in one non-blocking persistent window.
+        - obs and flipped_obs should be shape (C, 84, 84)
+        """
+        obs_np = obs.cpu().numpy()
+        flipped_np = flipped_obs.cpu().numpy()
+        num_frames = obs_np.shape[0]
+
+        if self.debug_fig is None:
+            plt.ion()
+            self.debug_fig, self.debug_axes = plt.subplots(2, num_frames, figsize=(num_frames * 2.5, 5))
+            self.debug_fig.suptitle(title)
+        else:
+            for row in self.debug_axes:
+                for ax in row:
+                    ax.clear()
+
+        for i in range(num_frames):
+            self.debug_axes[0][i].imshow(obs_np[i], cmap='gray', vmin=0, vmax=255)
+            self.debug_axes[0][i].set_title(f"Frame {i}")
+            self.debug_axes[0][i].axis('off')
+
+            self.debug_axes[1][i].imshow(flipped_np[i], cmap='gray', vmin=0, vmax=255)
+            self.debug_axes[1][i].set_title(f"Flipped {i}")
+            self.debug_axes[1][i].axis('off')
+
+        self.debug_fig.tight_layout()
+        self.debug_fig.canvas.draw()
+        self.debug_fig.canvas.flush_events()
 
     def save_debug_frame(self, frame_tensor, p1_score, p2_score, episode, step):
         """
@@ -197,7 +231,7 @@ class Agent():
                 player_1_reward = 0
                 player_2_reward = 0
 
-                next_obs, player_1_reward, player_2_reward, done, truncated, info = self.env.step(player_1_action=player_1_action, player_2_action=player_2_action)
+                next_obs, player_1_reward, player_2_reward, done, truncated, info = self.env.step(player_1_action=player_1_action)
     
                 #if(player_1_reward != 0):
                 #    self.save_debug_frame(obs, player_1_reward, player_2_reward, episode, episode_steps)
@@ -205,7 +239,7 @@ class Agent():
                 next_obs = self.process_observation(next_obs)
 
                 self.memory.store_transition(obs, player_1_action, player_1_reward, next_obs, done)
-                self.memory.store_transition(self.flip_obs(obs), player_2_action, player_2_reward, self.flip_obs(next_obs), done)
+                # self.memory.store_transition(self.flip_obs(obs), player_2_action, player_2_reward, self.flip_obs(next_obs), done)
 
                 obs = next_obs                
 
