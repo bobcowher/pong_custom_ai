@@ -103,7 +103,7 @@ class Ball:
             new_rect = pygame.Rect(new_x, new_y, self.width, self.height)
 
             if(new_rect.colliderect(self.player_1_paddle) or new_rect.colliderect(self.player_2_paddle)):
-                self.vx = (self.vx + x_step) * -1 # Invert direction and speed up the ball slightly
+                self.vx = np.clip((self.vx + x_step) * -1, -20, 20) # Invert direction and speed up the ball slightly
                 break
 
         self.x = new_x
