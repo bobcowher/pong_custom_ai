@@ -94,6 +94,9 @@ class Ball:
                 self.vy = np.clip(self.vy * -1, -20, 20)
                 break
             new_rect = pygame.Rect(new_x, new_y, self.width, self.height)
+            
+            if(new_rect.colliderect(self.player_1_paddle) or new_rect.colliderect(self.player_2_paddle)):
+                self.vy = self.vy * -1
 
         for i in range(abs(int(self.vx))):
             new_x = new_x + x_step

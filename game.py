@@ -118,9 +118,9 @@ class Pong(gym.Env):
                 elif keys[pygame.K_j]:
                     player_1_action = 2
             if self.player2 == "human":
-                if keys[pygame.K_w]:
+                if keys[pygame.K_e]:
                     player_2_action = 1
-                elif keys[pygame.K_s]:
+                elif keys[pygame.K_f]:
                     player_2_action = 2
 
             if self.player1 == "bot":
@@ -258,20 +258,37 @@ class Pong(gym.Env):
         # if self.player2 == "ai":
         #     player_2_action = self.mirror_action(player_2_action)
         #
-        total_player_1_reward = 0
-        total_player_2_reward = 0
+        player_1_reward = 0
+        player_2_reward = 0
+        info = {}
+        done = False
+        truncated = False
         
         for i in range(self.step_repeat):
-            player_1_reward, player_2_reward, done, truncated, info = self._step(player_1_action=player_1_action, player_2_action=player_2_action)
-            total_player_1_reward = total_player_1_reward + player_1_reward
-            total_player_2_reward = total_player_2_reward + player_2_reward
-
-            if done:
-                break
+            self._step(player_1_action=player_1_action, player_2_action=player_2_action)
 
         observation = self._get_obs() 
-       
-        return observation, total_player_1_reward, total_player_2_reward, done, truncated, info
+        
+        if(self.ball.x < 0):
+            self.player_1_score += 1
+            player_1_reward += 1
+            player_2_reward -= 1
+            self.ball.spawn()
+        elif(self.ball.x > self.window_width):
+            self.player_2_score += 1
+            player_1_reward -= 1
+            player_2_reward += 1
+            self.ball.spawn()
+
+        if(self.player_1_score >= self.top_score or 
+           self.player_2_score >= self.top_score):
+            if self.render_mode == "human":
+                self.game_over()
+            else:
+                done = True
+                truncated = True
+
+        return observation, player_1_reward, player_2_reward, done, truncated, info
 
 
     def _step(self, player_1_action, player_2_action):
@@ -280,12 +297,6 @@ class Pong(gym.Env):
             player_1_action = self.get_bot_move(1)
         if(player_2_action is None):
             player_2_action = self.get_bot_move(2)
-
-        done = False
-        truncated = False
-
-        player_1_reward = 0
-        player_2_reward = 0
 
         self.player_1_paddle.move(player_1_action)
         self.player_2_paddle.move(player_2_action)
@@ -303,30 +314,6 @@ class Pong(gym.Env):
 
         pygame.display.flip()
 
-        if(self.ball.x < 0):
-            self.player_1_score += 1
-            player_1_reward += 1
-            player_2_reward -= 1
-            self.ball.spawn()
-        elif(self.ball.x > self.window_width):
-            self.player_2_score += 1
-            player_1_reward -= 1
-            player_2_reward += 1
-            self.ball.spawn()
-
-
-        if(self.player_1_score >= self.top_score or 
-           self.player_2_score >= self.top_score):
-            if self.render_mode == "human":
-                self.game_over()
-            else:
-                done = True
-                truncated = True
-
-        info = {}
-
-
-        return player_1_reward, player_2_reward, done, truncated, info       
         
 
 
