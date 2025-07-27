@@ -257,11 +257,11 @@ class Agent():
             writer.add_scalar('Score/Player 1 Training', player_1_episode_reward, episode)
             writer.add_scalar('Score/Player 2 Training', player_2_episode_reward, episode)
 
-            if episode > 0 and (episode % 100 == 0):
+            if episode > 0 and (episode % 20 == 0):
 
                 print("\nEval Run Started")
 
-                for difficulty in ['easy', 'hard']:
+                for difficulty in ['easy']:
                     player_1_score_v_bot, player_2_score_v_bot = self.eval(bot_difficulty=difficulty)
                     writer.add_scalar(f'Score/Player 1 v. {difficulty} Bot', player_1_score_v_bot, episode)
                     writer.add_scalar(f'Score/Player 2 v. {difficulty} Bot', player_2_score_v_bot, episode)
