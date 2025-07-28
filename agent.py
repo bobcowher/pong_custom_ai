@@ -232,6 +232,7 @@ class Agent():
                 player_2_reward = 0
 
                 next_obs, player_1_reward, player_2_reward, done, truncated, info = self.env.step(player_1_action=player_1_action)
+                # next_obs, player_1_reward, player_2_reward, done, truncated, info = self.env.step(player_2_action=player_2_action)
     
                 #if(player_1_reward != 0):
                 #    self.save_debug_frame(obs, player_1_reward, player_2_reward, episode, episode_steps)
@@ -239,6 +240,7 @@ class Agent():
                 next_obs = self.process_observation(next_obs)
 
                 self.memory.store_transition(obs, player_1_action, player_1_reward, next_obs, done)
+                # self.memory.store_transition(obs, player_2_action, player_2_reward, next_obs, done)
                 # self.memory.store_transition(self.flip_obs(obs), player_2_action, player_2_reward, self.flip_obs(next_obs), done)
 
                 obs = next_obs                
@@ -273,10 +275,12 @@ class Agent():
 
                     # 4 — loss & optimise
                     loss = F.mse_loss(q_sa, targets)
-                    writer.add_scalar("Loss/model", loss.item(), total_steps)
+                    writer.add_scalar("Stats/model_loss", loss.item(), total_steps)
 
                     self.optimizer_1.zero_grad()
                     loss.backward()
+                    total_norm = torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=5.0)
+                    writer.add_scalar("Stats/grad_norm_before_clip", total_norm, total_steps)
                     self.optimizer_1.step()
 
                     # 5 — target-net sync
