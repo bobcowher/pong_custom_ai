@@ -133,7 +133,11 @@ class Pong(gym.Env):
             if self.player2 == "ai":
                 player_2_action = self.get_ai_move(player=2)
 
-            self.step(player_1_action, player_2_action)
+            observation, player_1_reward, player_2_reward, done, truncated, info = self.step(player_1_action, player_2_action)
+
+            if(player_1_reward != 0):
+                print(f"Player 1 reward: {player_1_reward}")
+                print(f"Player 2 reward: {player_2_reward}")
     
 
     def _get_obs(self):
@@ -196,8 +200,9 @@ class Pong(gym.Env):
 
         obs = self._get_obs()
         obs = self.ai_agent.process_observation(obs)
+        # self.ai_agent.show_stacked_frames(obs, self.ai_agent.flip_obs(obs))
 
-        show_debug_image(obs)
+        # show_debug_image(obs)
 
         action = None
 
@@ -237,12 +242,11 @@ class Pong(gym.Env):
     def fill_background(self):
         self.screen.fill(self.background_color)
 
-        if(self.render_mode == "human"):
-            player_1_score_surface = self.font.render(f'Score: {self.player_1_score}', True, self.player_1_color)
-            self.screen.blit(player_1_score_surface, ((self.window_width / 2) + 20, 10))
-            
-            player_2_score_surface = self.font.render(f'Score: {self.player_2_score}', True, self.player_2_color)
-            self.screen.blit(player_2_score_surface, ((self.window_width / 2) - player_2_score_surface.get_width() - 20, 10))
+        player_1_score_surface = self.font.render(f'Score: {self.player_1_score}', True, self.player_1_color)
+        self.screen.blit(player_1_score_surface, ((self.window_width / 2) + 20, 10))
+        
+        player_2_score_surface = self.font.render(f'Score: {self.player_2_score}', True, self.player_2_color)
+        self.screen.blit(player_2_score_surface, ((self.window_width / 2) - player_2_score_surface.get_width() - 20, 10))
 
 
     def mirror_action(self, action):
@@ -255,14 +259,16 @@ class Pong(gym.Env):
 
     def step(self, player_1_action=None, player_2_action=None):
         
-        # if self.player2 == "ai":
-        #     player_2_action = self.mirror_action(player_2_action)
-        #
         player_1_reward = 0
         player_2_reward = 0
         info = {}
         done = False
         truncated = False
+        
+        if(player_1_action is None):
+            player_1_action = self.get_bot_move(1)
+        if(player_2_action is None):
+            player_2_action = self.get_bot_move(2)
         
         for i in range(self.step_repeat):
             self._step(player_1_action=player_1_action, player_2_action=player_2_action)
@@ -293,10 +299,6 @@ class Pong(gym.Env):
 
     def _step(self, player_1_action, player_2_action):
        
-        if(player_1_action is None):
-            player_1_action = self.get_bot_move(1)
-        if(player_2_action is None):
-            player_2_action = self.get_bot_move(2)
 
         self.player_1_paddle.move(player_1_action)
         self.player_2_paddle.move(player_2_action)
