@@ -13,7 +13,7 @@ min_epsilon = 0.1
 epsilon_decay = 0.99
 gamma = 0.99
 max_buffer_size = 400000
-target_update_interval = 1000
+target_update_interval = 100
 
 hidden_layer = 512 
 
