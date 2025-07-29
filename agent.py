@@ -210,7 +210,7 @@ class Agent():
             player_2_episode_reward = 0
             obs, info = self.env.reset()
 
-            obs = self.process_observation(obs)
+            obs = self.process_observation(obs, clear_stack=True)
 
             episode_steps = 0
 
