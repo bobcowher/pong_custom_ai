@@ -35,7 +35,7 @@ class Agent():
             self.model.load_the_model()
             return
 
-        self.env = Pong(player1="ai", player2="bot", render_mode="rgbarray")
+        self.env = Pong(player1="ai", player2="bot", render_mode="rgbarray", bot_difficulty="easy")
         self.eval_envs = [Pong(player1="ai", player2="bot", render_mode="rgbarray"),
                           Pong(player1="bot", player2="ai", render_mode="rgbarray")]
 
