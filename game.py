@@ -274,13 +274,15 @@ class Pong(gym.Env):
             self._step(player_1_action=player_1_action, player_2_action=player_2_action)
 
         observation = self._get_obs() 
+
+        ball_center = self.ball.x + (self.ball.width / 2)
         
-        if(self.ball.x < 0):
+        if(ball_center < 0):
             self.player_1_score += 1
             player_1_reward += 1
             player_2_reward -= 1
             self.ball.spawn()
-        elif(self.ball.x > self.window_width):
+        elif(ball_center > self.window_width):
             self.player_2_score += 1
             player_1_reward -= 1
             player_2_reward += 1
