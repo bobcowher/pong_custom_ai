@@ -3,14 +3,14 @@ import time
 from game import Pong
 
 episodes = 10000
-max_episode_steps = 10000
+max_episode_steps = 1000
 total_steps = 0
 
 batch_size = 64 
-learning_rate = 0.0001
+learning_rate = 0.00025
 epsilon = 1
 min_epsilon = 0.1
-epsilon_decay = 0.99
+epsilon_decay = 0.999
 gamma = 0.99
 max_buffer_size = 400000
 target_update_interval = 100
@@ -22,7 +22,7 @@ hidden_layer = 512
 # Constants
 start_time = time.perf_counter()
 
-summary_writer_suffix = f'dqn_lr={learning_rate}_bs={batch_size}_buffer={max_buffer_size}_tui={target_update_interval}'
+summary_writer_suffix = f'dqn_lr={learning_rate}_bs={batch_size}_buffer={max_buffer_size}_tui={target_update_interval}_hl={hidden_layer}'
 
 agent = Agent(hidden_layer=hidden_layer,
               learning_rate=learning_rate,
