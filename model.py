@@ -8,21 +8,16 @@ class Model(nn.Module):
         super(Model, self).__init__()
 
         # CNN layers with a third layer added
-        self.conv1 = nn.Conv2d(in_channels=obs_stack, out_channels=8, kernel_size=4, stride=2)
-        self.conv2 = nn.Conv2d(in_channels=8, out_channels=16, kernel_size=4, stride=2)
-        self.conv3 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=2)  # Third convolutional layer
+        self.conv1 = nn.Conv2d(in_channels=obs_stack, out_channels=32, kernel_size=8, stride=4)
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=4, stride=2)
+        self.conv3 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1)  # Third convolutional layer
 
-        # Pooling layer for additional downsampling
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
-        
         # Calculate CNN output size
         conv_output_size = self.calculate_conv_output(observation_shape)
         print("conv_output_size:", conv_output_size)
 
         # Fully connected layers
         self.fc1 = nn.Linear(conv_output_size, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
-        self.fc3 = nn.Linear(hidden_dim, hidden_dim)
         self.output = nn.Linear(hidden_dim, action_dim)
 
         # Initialize weights
@@ -46,8 +41,6 @@ class Model(nn.Module):
         
         # Fully connected layers with optional dropout
         x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
         
         output = self.output(x)
 
