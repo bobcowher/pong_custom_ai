@@ -302,8 +302,9 @@ class Agent():
             if episode > 0 and (episode % 20 == 0):
 
                 print("\nEval Run Started")
+                eval_env_list = ['easy'] if episode < 400 else ['hard']
 
-                for difficulty in ['easy']:
+                for difficulty in eval_env_list:
                     player_1_score_v_bot, player_2_score_v_bot = self.eval(bot_difficulty=difficulty)
                     writer.add_scalar(f'Score/Player 1 v. {difficulty} Bot', player_1_score_v_bot, episode)
                     writer.add_scalar(f'Score/Player 2 v. {difficulty} Bot', player_2_score_v_bot, episode)
