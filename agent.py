@@ -19,7 +19,7 @@ from collections import deque
 
 class Agent():
 
-    def __init__(self, hidden_layer=512, learning_rate=0.0001, gamma=0.99, max_buffer_size=100000, eval=False, frame_stack=3, target_update_interval=10000) -> None:
+    def __init__(self, hidden_layer=512, learning_rate=0.0001, gamma=0.99, max_buffer_size=100000, eval=False, frame_stack=3, target_update_interval=10000, max_episode_steps=1000) -> None:
 
         self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
         
@@ -29,6 +29,8 @@ class Agent():
         
         self.debug_fig = None  # <- add this to your Agent init
         self.debug_axes = []
+
+        self.max_episode_steps = max_episode_steps
         
         if eval:
             self.model = Model(action_dim=3, hidden_dim=hidden_layer, observation_shape=(frame_stack,84,84), obs_stack=frame_stack).to(self.device)
@@ -176,9 +178,12 @@ class Agent():
 
             episode_reward[player] = 0
 
-            while not done:
+            episode_steps = 0
+
+            while not done and episode_steps < self.max_episode_steps:
 
                 reward = 0
+                episode_steps += 1
 
                 if(player == 0):
                     action = self.get_action(obs, player=1) 
@@ -194,7 +199,7 @@ class Agent():
         return episode_reward[0], episode_reward[1]
                 
 
-    def train(self, episodes, max_episode_steps, summary_writer_suffix, batch_size, epsilon, epsilon_decay, min_epsilon):
+    def train(self, episodes, summary_writer_suffix, batch_size, epsilon, epsilon_decay, min_epsilon):
         summary_writer_name = f'runs/{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}_{summary_writer_suffix}'
         writer = SummaryWriter(summary_writer_name)
 
@@ -216,7 +221,7 @@ class Agent():
 
             episode_start_time = time.time()
 
-            while not done and episode_steps < max_episode_steps:
+            while not done and episode_steps < self.max_episode_steps:
 
                 if random.random() < epsilon:
                     player_1_action = self.env.action_space.sample()
