@@ -13,7 +13,7 @@ class Paddle:
         self.height = height
         self.width = width
         self.rect = pygame.Rect(x, y, self.width, self.height)
-        self.speed = 10
+        self.speed = 14
 
         self.paddle_color = player_color
 
@@ -52,6 +52,7 @@ class Ball:
         self.player_1_paddle = player_1_paddle
         self.player_2_paddle = player_2_paddle
         self.ball_color = (255, 255, 255)
+        self.max_speed = 25
 
         self.last_serve_left = random.choice([True, False])
         
@@ -62,7 +63,7 @@ class Ball:
         self.x = self.window_width / 2
         self.y = self.window_height / 2
 
-        speed = random.choice([8, 10, 12])
+        speed = random.choice([10, 12, 14])
 
         # Alternate direction
         self.last_serve_left = not self.last_serve_left
@@ -87,28 +88,40 @@ class Ball:
         x_step = self.get_step_increment(self.vx)
         y_step = self.get_step_increment(self.vy)
         new_rect = None
+        early_collision_detected = False
+        
+        # Find out if ball is already in collision. 
+        if(self.rect.colliderect(self.player_1_paddle) or self.rect.colliderect(self.player_2_paddle)):
+            early_collision_detected = True
 
         for i in range(abs(int(self.vy))):
             new_y = new_y + y_step
-            if(not (0 <= new_y <= (self.window_height - self.height))):
-                self.vy = np.clip(self.vy * -1, -20, 20)
-                break
-            new_rect = pygame.Rect(new_x, new_y, self.width, self.height)
-            
-            if(new_rect.colliderect(self.player_1_paddle) or new_rect.colliderect(self.player_2_paddle)):
-                self.vy = self.vy * -1
+
+            if not early_collision_detected:
+                if(not (0 <= new_y <= (self.window_height - self.height))):
+                    self.vy = np.clip((self.vy * -1) + random.choice([-1, 1]), -self.max_speed, self.max_speed)
+                    break
+
+                new_rect = pygame.Rect(new_x, new_y, self.width, self.height)
+                
+                if(new_rect.colliderect(self.player_1_paddle) or new_rect.colliderect(self.player_2_paddle)):
+                    self.vy = np.clip(self.vy + random.choice([-1, 1]), -self.max_speed, self.max_speed)
+                    break
 
         for i in range(abs(int(self.vx))):
             new_x = new_x + x_step
-            new_rect = pygame.Rect(new_x, new_y, self.width, self.height)
 
-            if(new_rect.colliderect(self.player_1_paddle) or new_rect.colliderect(self.player_2_paddle)):
-                self.vx = np.clip((self.vx + x_step) * -1, -20, 20) # Invert direction and speed up the ball slightly
-                break
+            if not early_collision_detected:
+                new_rect = pygame.Rect(new_x, new_y, self.width, self.height)
+
+                if(new_rect.colliderect(self.player_1_paddle) or new_rect.colliderect(self.player_2_paddle)) :
+                    self.vx = np.clip((self.vx + x_step) * -1, -self.max_speed, self.max_speed) # Invert direction and speed up the ball slightly
+                    self.vy = np.clip(self.vy + random.choice([-1, 1]), -self.max_speed, self.max_speed)
+                    break
 
         self.x = new_x
         self.y = new_y
-        self.rect = new_rect
+        self.rect = pygame.Rect(new_x, new_y, self.width, self.height)
 
 
     def draw(self, screen):
