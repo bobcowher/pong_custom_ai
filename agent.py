@@ -31,8 +31,9 @@ class Agent():
         self.debug_axes = []
 
         self.max_episode_steps = max_episode_steps
+        self.eval_mode = eval
         
-        if eval:
+        if self.eval_mode:
             self.model = Model(action_dim=3, hidden_dim=hidden_layer, observation_shape=(frame_stack,84,84), obs_stack=frame_stack).to(self.device)
             self.model.load_the_model()
             return
@@ -52,11 +53,12 @@ class Agent():
         self.memory = ReplayBuffer(max_size=max_buffer_size, input_shape=obs.shape, n_actions=self.env.action_space.n, input_device=self.device, output_device=self.device)
 
         self.model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=obs.shape, obs_stack=frame_stack).to(self.device)
-
+        self.checkpoint_model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=obs.shape, obs_stack=frame_stack).to(self.device)
         self.target_model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=obs.shape, obs_stack=frame_stack).to(self.device)
 
         # Initialize target networks with model parameters
         self.target_model.load_state_dict(self.model.state_dict())
+        self.checkpoint_model.load_state_dict(self.model.state_dict())
 
         self.optimizer_1 = optim.Adam(self.model.parameters(), lr=learning_rate)
 
@@ -133,8 +135,12 @@ class Agent():
 
         if(player == 2):
             obs = self.flip_obs(obs) 
-        #
-        q_values = self.model.forward(obs.unsqueeze(0).to(self.device))[0]
+        
+        if(player == 2 and not self.eval_mode):
+            q_values = self.checkpoint_model.forward(obs.unsqueeze(0).to(self.device))[0]
+        else:
+            q_values = self.model.forward(obs.unsqueeze(0).to(self.device))[0]
+
         action = torch.argmax(q_values, dim=-1).item()
 
         return action
@@ -298,6 +304,10 @@ class Agent():
 
             writer.add_scalar('Score/Player 1 Training', player_1_episode_reward, episode)
             writer.add_scalar('Score/Player 2 Training', player_2_episode_reward, episode)
+
+            # We're loading the checkpoint model to provide a stable "Player 2" checkpoint to train against.
+            if episode % 100 == 0:
+                self.checkpoint_model.load_state_dict(self.model.state_dict())
 
             if episode > 0 and (episode % 20 == 0):
 
