@@ -319,6 +319,9 @@ class Agent():
 
             writer.add_scalar('Epsilon', epsilon, episode)
 
+            if epsilon < 0.5:
+                epsilon_decay = 0.9999
+
             if epsilon > min_epsilon:
                 epsilon *= epsilon_decay
 
