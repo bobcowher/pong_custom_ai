@@ -20,7 +20,8 @@ from collections import deque
 
 class Agent():
 
-    def __init__(self, hidden_layer=512, learning_rate=0.0001, gamma=0.99, max_buffer_size=100000, eval=False, frame_stack=3, target_update_interval=10000, max_episode_steps=1000) -> None:
+    def __init__(self, hidden_layer=512, learning_rate=0.0001, gamma=0.99, max_buffer_size=100000, eval=False, frame_stack=3, target_update_interval=10000, max_episode_steps=1000,
+                 epsilon=0, min_epsilon=0, epsilon_decay=0.995) -> None:
 
         self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
         
@@ -33,10 +34,15 @@ class Agent():
 
         self.max_episode_steps = max_episode_steps
         self.eval_mode = eval
+
+        self.epsilon = epsilon
+        self.min_epsilon = min_epsilon 
+        self.epsilon_decay = epsilon_decay
         
         if self.eval_mode:
             self.model = Model(action_dim=3, hidden_dim=hidden_layer, observation_shape=(frame_stack,84,84), obs_stack=frame_stack).to(self.device)
             self.model.load_the_model()
+            self.epsilon = 0
             return
 
         self.env = Pong(player1="ai", player2="bot", render_mode="rgbarray", bot_difficulty="easy")
@@ -132,17 +138,23 @@ class Agent():
         cv2.imwrite(filename, frame_bgr)
 
 
-    def get_action(self, obs, player=2, checkpoint_model=False):
+    def get_action(self, obs, player=2, checkpoint_model=False, episode=0):
 
         if(player == 2):
             obs = self.flip_obs(obs) 
         
         if(checkpoint_model):
-            q_values = self.checkpoint_model.forward(obs.unsqueeze(0).to(self.device))[0]
+            if random.random() < self.epsilon and episode < 200:
+                action = self.env.action_space.sample()
+            else:
+                q_values = self.checkpoint_model.forward(obs.unsqueeze(0).to(self.device))[0]
+                action = torch.argmax(q_values, dim=-1).item()
         else:
-            q_values = self.model.forward(obs.unsqueeze(0).to(self.device))[0]
-
-        action = torch.argmax(q_values, dim=-1).item()
+            if random.random() < self.epsilon:
+                action = self.env.action_space.sample()
+            else:
+                q_values = self.model.forward(obs.unsqueeze(0).to(self.device))[0]
+                action = torch.argmax(q_values, dim=-1).item()
 
         return action
 
@@ -206,7 +218,7 @@ class Agent():
         return episode_reward[0], episode_reward[1]
                 
 
-    def train(self, episodes, summary_writer_suffix, batch_size, epsilon, epsilon_decay, min_epsilon):
+    def train(self, episodes, summary_writer_suffix, batch_size):
         summary_writer_name = f'runs/{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}_{summary_writer_suffix}'
         writer = SummaryWriter(summary_writer_name)
 
@@ -236,15 +248,8 @@ class Agent():
 
             while not done and episode_steps < self.max_episode_steps:
 
-                if random.random() < epsilon:
-                    player_1_action = self.env.action_space.sample()
-                else:
-                    player_1_action = self.get_action(obs, player=1, checkpoint_model=player_1_use_checkpoint)
-                   
-                if random.random() < epsilon:
-                    player_2_action = self.env.action_space.sample()
-                else:
-                    player_2_action = self.get_action(obs, player=2, checkpoint_model=player_2_use_checkpoint) 
+                player_1_action = self.get_action(obs, player=1, checkpoint_model=player_1_use_checkpoint, episode=episode)
+                player_2_action = self.get_action(obs, player=2, checkpoint_model=player_2_use_checkpoint, episode=episode) 
 
                 player_1_reward = 0
                 player_2_reward = 0
@@ -345,14 +350,14 @@ class Agent():
                 print("Model Saved")
 
 
-            writer.add_scalar('Stats/Epsilon', epsilon, episode)
+            writer.add_scalar('Stats/Epsilon', self.epsilon, episode)
 
             if episode > 0 and episode % 500 == 0:
                 print("Strategic amnesia triggered: Resetting epsilon to encourage exploration.")
-                epsilon = 0.3
+                self.epsilon = 0.3
 
-            if epsilon > min_epsilon:
-                epsilon *= epsilon_decay
+            if self.epsilon > self.min_epsilon:
+                self.epsilon *= self.epsilon_decay
 
             episode_time = time.time() - episode_start_time
 

@@ -29,13 +29,15 @@ agent = Agent(hidden_layer=hidden_layer,
               gamma=gamma,
               max_buffer_size=max_buffer_size,
               target_update_interval=target_update_interval,
-              max_episode_steps=max_episode_steps)
+              max_episode_steps=max_episode_steps,
+              epsilon=epsilon,
+              min_epsilon=min_epsilon,
+              epsilon_decay=epsilon_decay)
 
 # Training Phase 1
 
 agent.train(episodes=episodes, summary_writer_suffix=summary_writer_suffix + "-phase-1",
-            batch_size=batch_size, epsilon=epsilon, epsilon_decay=epsilon_decay,
-            min_epsilon=min_epsilon)
+            batch_size=batch_size)
 
 end_time = time.perf_counter()
 
