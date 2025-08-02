@@ -17,6 +17,7 @@ import cv2
 import numpy as np
 from game import Pong
 from collections import deque
+import copy
 
 class Agent():
 
@@ -60,12 +61,16 @@ class Agent():
         self.memory = ReplayBuffer(max_size=max_buffer_size, input_shape=obs.shape, n_actions=self.env.action_space.n, input_device=self.device, output_device=self.device)
 
         self.model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=obs.shape, obs_stack=frame_stack).to(self.device)
-        self.checkpoint_model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=obs.shape, obs_stack=frame_stack).to(self.device)
+
         self.target_model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=obs.shape, obs_stack=frame_stack).to(self.device)
+
+        self.checkpoint_pool = deque(maxlen=5)
+        self.checkpoint_pool.append(copy.deepcopy(self.model))
+
+        self.checkpoint_model = None
 
         # Initialize target networks with model parameters
         self.target_model.load_state_dict(self.model.state_dict())
-        self.checkpoint_model.load_state_dict(self.model.state_dict())
 
         self.optimizer_1 = optim.Adam(self.model.parameters(), lr=learning_rate)
 
@@ -234,6 +239,7 @@ class Agent():
 
             # Every epsisode, flip flop who's using the older checkpoint model.
             player_1_use_checkpoint, player_2_use_checkpoint = not player_1_use_checkpoint, not player_2_use_checkpoint
+            self.checkpoint_model = random.choice(self.checkpoint_pool)
 
             done = False
             player_1_episode_reward = 0
@@ -330,7 +336,7 @@ class Agent():
 
             # We're loading the checkpoint model to provide a stable "Player 2" checkpoint to train against.
             if episode % 100 == 0:
-                self.checkpoint_model.load_state_dict(self.model.state_dict())
+                self.checkpoint_pool.append(copy.deepcopy(self.model))
 
             if episode > 0 and (episode % 20 == 0):
 
