@@ -1,5 +1,6 @@
 from pygame.event import clear
 import matplotlib.pyplot as plt
+from torch._prims_common import check
 from buffer import ReplayBuffer
 from model import Model, soft_update, hard_update
 import torch
@@ -131,12 +132,12 @@ class Agent():
         cv2.imwrite(filename, frame_bgr)
 
 
-    def get_action(self, obs, player=2):
+    def get_action(self, obs, player=2, checkpoint_model=False):
 
         if(player == 2):
             obs = self.flip_obs(obs) 
         
-        if(player == 2 and not self.eval_mode):
+        if(checkpoint_model):
             q_values = self.checkpoint_model.forward(obs.unsqueeze(0).to(self.device))[0]
         else:
             q_values = self.model.forward(obs.unsqueeze(0).to(self.device))[0]
@@ -214,7 +215,13 @@ class Agent():
 
         total_steps = 0
 
+        player_1_use_checkpoint = False
+        player_2_use_checkpoint = True
+
         for episode in range(episodes):
+
+            # Every epsisode, flip flop who's using the older checkpoint model.
+            player_1_use_checkpoint, player_2_use_checkpoint = not player_1_use_checkpoint, not player_2_use_checkpoint
 
             done = False
             player_1_episode_reward = 0
@@ -232,28 +239,26 @@ class Agent():
                 if random.random() < epsilon:
                     player_1_action = self.env.action_space.sample()
                 else:
-                    player_1_action = self.get_action(obs, player=1)
+                    player_1_action = self.get_action(obs, player=1, checkpoint_model=player_1_use_checkpoint)
                    
                 if random.random() < epsilon:
                     player_2_action = self.env.action_space.sample()
                 else:
-                    player_2_action = self.get_action(obs, player=2) 
+                    player_2_action = self.get_action(obs, player=2, checkpoint_model=player_2_use_checkpoint) 
 
                 player_1_reward = 0
                 player_2_reward = 0
 
-                # next_obs, player_1_reward, player_2_reward, done, truncated, info = self.env.step(player_1_action=player_1_action)
-                # next_obs, player_1_reward, player_2_reward, done, truncated, info = self.env.step(player_2_action=player_2_action)
                 next_obs, player_1_reward, player_2_reward, done, truncated, info = self.env.step(player_1_action=player_1_action, player_2_action=player_2_action)
     
-                #if(player_1_reward != 0):
-                #    self.save_debug_frame(obs, player_1_reward, player_2_reward, episode, episode_steps)
-                
                 next_obs = self.process_observation(next_obs)
 
-                self.memory.store_transition(obs, player_1_action, player_1_reward, next_obs, done)
-                # self.memory.store_transition(obs, player_2_action, player_2_reward, next_obs, done)
-                self.memory.store_transition(self.flip_obs(obs), player_2_action, player_2_reward, self.flip_obs(next_obs), done)
+                # If player 1 is using the checkpoint model for this run, store transitions from player 2. 
+                # Always store the "live" model's data.
+                if player_1_use_checkpoint:
+                    self.memory.store_transition(self.flip_obs(obs), player_2_action, player_2_reward, self.flip_obs(next_obs), done)
+                else:
+                    self.memory.store_transition(obs, player_1_action, player_1_reward, next_obs, done)
 
                 obs = next_obs                
 
@@ -302,8 +307,21 @@ class Agent():
                         print("Sampled Player 1 rewards:", rewards.squeeze().tolist())
 
 
-            writer.add_scalar('Score/Player 1 Training', player_1_episode_reward, episode)
-            writer.add_scalar('Score/Player 2 Training', player_2_episode_reward, episode)
+            # Because we bounce between playing player 1 and player 2 with the latest policy, we need to log both the player scores, and
+            # the latest/checkpoint scores. Player scores should be close to identical, while the latest/checkpoint scores should take
+            # a sawtooth pattern in the logs.
+            if player_1_use_checkpoint:
+                latest_reward = player_2_episode_reward
+                checkpoint_reward = player_1_episode_reward
+            else:
+                latest_reward = player_1_episode_reward
+                checkpoint_reward = player_2_episode_reward
+
+            writer.add_scalar('Training Score/Player 1 Training', player_1_episode_reward, episode)
+            writer.add_scalar('Training Score/Player 2 Training', player_2_episode_reward, episode)
+
+            writer.add_scalar('Training Score/Latest Policy', latest_reward, episode)
+            writer.add_scalar('Training Score/Checkpoint Policy', checkpoint_reward, episode)
 
             # We're loading the checkpoint model to provide a stable "Player 2" checkpoint to train against.
             if episode % 100 == 0:
@@ -312,12 +330,12 @@ class Agent():
             if episode > 0 and (episode % 20 == 0):
 
                 print("\nEval Run Started")
-                eval_env_list = ['easy'] if episode < 400 else ['hard']
+                eval_env_list = ['easy', 'hard'] if episode < 400 else ['hard']
 
                 for difficulty in eval_env_list:
                     player_1_score_v_bot, player_2_score_v_bot = self.eval(bot_difficulty=difficulty)
-                    writer.add_scalar(f'Score/Player 1 v. {difficulty} Bot', player_1_score_v_bot, episode)
-                    writer.add_scalar(f'Score/Player 2 v. {difficulty} Bot', player_2_score_v_bot, episode)
+                    writer.add_scalar(f'Eval Score/Player 1 v. {difficulty} Bot', player_1_score_v_bot, episode)
+                    writer.add_scalar(f'Eval Score/Player 2 v. {difficulty} Bot', player_2_score_v_bot, episode)
 
                     print(f"Player 1 v. {difficulty} Bot: {player_1_score_v_bot}")
                     print(f"Player 2 v. {difficulty} Bot: {player_2_score_v_bot}")
@@ -327,10 +345,11 @@ class Agent():
                 print("Model Saved")
 
 
-            writer.add_scalar('Epsilon', epsilon, episode)
+            writer.add_scalar('Stats/Epsilon', epsilon, episode)
 
-            if epsilon < 0.5:
-                epsilon_decay = 0.9999
+            if episode > 0 and episode % 500 == 0:
+                print("Strategic amnesia triggered: Resetting epsilon to encourage exploration.")
+                epsilon = 0.3
 
             if epsilon > min_epsilon:
                 epsilon *= epsilon_decay
