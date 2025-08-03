@@ -1,8 +1,7 @@
 from pygame.event import clear
 import matplotlib.pyplot as plt
-from torch._prims_common import check
 from buffer import ReplayBuffer
-from model import Model, soft_update, hard_update
+from model import Model
 import torch
 import torch.optim as optim
 import torch.nn.functional as F
@@ -12,12 +11,13 @@ import time
 from torch.utils.tensorboard import SummaryWriter
 import random
 import os
-import pygame
 import cv2
 import numpy as np
 from game import Pong
 from collections import deque
 import copy
+from checkpoint import CheckpointPool
+import model 
 
 class Agent():
 
@@ -64,8 +64,8 @@ class Agent():
 
         self.target_model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=obs.shape, obs_stack=frame_stack).to(self.device)
 
-        self.checkpoint_pool = deque(maxlen=5)
-        self.checkpoint_pool.append(copy.deepcopy(self.model))
+        self.checkpoint_pool = CheckpointPool(max_size=5)
+        self.checkpoint_pool.add(self.model, -100)
 
         self.checkpoint_model = None
 
@@ -239,7 +239,7 @@ class Agent():
 
             # Every epsisode, flip flop who's using the older checkpoint model.
             player_1_use_checkpoint, player_2_use_checkpoint = not player_1_use_checkpoint, not player_2_use_checkpoint
-            self.checkpoint_model = random.choice(self.checkpoint_pool)
+            self.checkpoint_model = self.checkpoint_pool.sample()
 
             done = False
             player_1_episode_reward = 0
@@ -334,9 +334,7 @@ class Agent():
             writer.add_scalar('Training Score/Latest Policy', latest_reward, episode)
             writer.add_scalar('Training Score/Checkpoint Policy', checkpoint_reward, episode)
 
-            # We're loading the checkpoint model to provide a stable "Player 2" checkpoint to train against.
-            if episode % 100 == 0:
-                self.checkpoint_pool.append(copy.deepcopy(self.model))
+            player_v_hard_bot_average = 0
 
             if episode > 0 and (episode % 20 == 0):
 
@@ -350,10 +348,17 @@ class Agent():
 
                     print(f"Player 1 v. {difficulty} Bot: {player_1_score_v_bot}")
                     print(f"Player 2 v. {difficulty} Bot: {player_2_score_v_bot}")
+
+                    if difficulty == 'hard':
+                        player_v_hard_bot_average = (player_1_score_v_bot + player_2_score_v_bot) / 2
                 
                 print("Eval Run Finished. Saving the model...\n")
                 self.model.save_the_model()
                 print("Model Saved")
+            
+            if episode > 0 and (episode % 100 == 0):
+                self.checkpoint_pool.add(self.model, player_v_hard_bot_average)
+                self.checkpoint_pool.report()
 
 
             writer.add_scalar('Stats/Epsilon', self.epsilon, episode)
