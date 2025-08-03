@@ -1,6 +1,6 @@
 {
   "venvPath": "/home/robertcowher/anaconda3/envs",
   "venv": "pong_custom",
-  "typeCheckingMode": "basic",
+  "typeCheckingMode": "off",
   "pythonVersion": "3.12"
 }
