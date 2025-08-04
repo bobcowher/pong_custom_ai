@@ -223,6 +223,11 @@ class Agent():
         return episode_reward[0], episode_reward[1]
                 
 
+    def log_header(self, line):
+        print("-" * 50)
+        print(line)
+        print("-" * 50)
+
     def train(self, episodes, summary_writer_suffix, batch_size):
         summary_writer_name = f'runs/{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}_{summary_writer_suffix}'
         writer = SummaryWriter(summary_writer_name)
@@ -234,6 +239,8 @@ class Agent():
 
         player_1_use_checkpoint = False
         player_2_use_checkpoint = True
+
+        best_avg_score = -100
 
         for episode in range(episodes):
 
@@ -334,11 +341,9 @@ class Agent():
             writer.add_scalar('Training Score/Latest Policy', latest_reward, episode)
             writer.add_scalar('Training Score/Checkpoint Policy', checkpoint_reward, episode)
 
-            player_v_hard_bot_average = 0
-
             if episode > 0 and (episode % 20 == 0):
-
-                print("\nEval Run Started")
+                
+                self.log_header("Eval run started...")
                 eval_env_list = ['easy', 'hard'] if episode < 400 else ['hard']
 
                 for difficulty in eval_env_list:
@@ -349,16 +354,37 @@ class Agent():
                     print(f"Player 1 v. {difficulty} Bot: {player_1_score_v_bot}")
                     print(f"Player 2 v. {difficulty} Bot: {player_2_score_v_bot}")
 
-                    if difficulty == 'hard':
-                        player_v_hard_bot_average = (player_1_score_v_bot + player_2_score_v_bot) / 2
-                
                 print("Eval Run Finished. Saving the model...\n")
                 self.model.save_the_model()
                 print("Model Saved")
-            
-            if episode > 0 and (episode % 100 == 0):
-                self.checkpoint_pool.add(self.model, player_v_hard_bot_average)
+                
+                # print the checkpoint pool every 20 episodes. 
                 self.checkpoint_pool.report()
+               
+                self.log_header("Eval run complete.")
+                
+            if episode > 0 and (episode % 100 == 0):
+                self.log_header("Checkpoint pool eval run started...")
+                player_v_bot_total = 0 # -100 is lower than the possible starting average. 
+                eval_ep_count = 3
+                
+                for i in range(eval_ep_count):
+                    player_1_score_v_bot, player_2_score_v_bot = self.eval(bot_difficulty="hard")
+                    player_v_bot_total += player_1_score_v_bot
+                    player_v_bot_total += player_2_score_v_bot
+                
+                print(f"Player v bot total: {player_v_bot_total}")
+                player_v_bot_average = player_v_bot_total / (eval_ep_count * 2)
+
+                if(player_v_bot_average >= best_avg_score):
+                    best_avg_score = player_v_bot_average
+                    self.model.save_the_model(filename=f"models/model_best.pt")
+                    self.checkpoint_pool.add(self.model, player_v_bot_average)
+                    print(f"Saved new best model - Average score {best_avg_score} against the hard bot")
+                else:
+                    print(f"Failed to save new best model. {best_avg_score} higher than {player_v_bot_average}")
+                
+                self.log_header("Checkpoint pool eval run started...")
 
 
             writer.add_scalar('Stats/Epsilon', self.epsilon, episode)

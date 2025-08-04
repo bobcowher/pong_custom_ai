@@ -2,12 +2,12 @@ from agent import Agent
 import time
 from game import Pong
 
-episodes = 10000
+episodes = 6000
 max_episode_steps = 2000
 total_steps = 0
 
-batch_size = 64 
-learning_rate = 0.00025
+batch_size = 64
+learning_rate = 0.00001
 epsilon = 1
 min_epsilon = 0.1
 epsilon_decay = 0.995
