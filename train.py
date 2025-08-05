@@ -6,14 +6,15 @@ episodes = 6000
 max_episode_steps = 2000
 total_steps = 0
 
-batch_size = 64
-learning_rate = 0.00001
+batch_size = 32 
+learning_rate = 0.0001
 epsilon = 1
 min_epsilon = 0.1
 epsilon_decay = 0.995
 gamma = 0.99
 max_buffer_size = 400000
 target_update_interval = 100
+checkpoint_pool = 10 
 
 hidden_layer = 512 
 
@@ -32,7 +33,8 @@ agent = Agent(hidden_layer=hidden_layer,
               max_episode_steps=max_episode_steps,
               epsilon=epsilon,
               min_epsilon=min_epsilon,
-              epsilon_decay=epsilon_decay)
+              epsilon_decay=epsilon_decay,
+              checkpoint_pool=checkpoint_pool)
 
 # Training Phase 1
 

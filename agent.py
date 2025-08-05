@@ -22,7 +22,7 @@ import model
 class Agent():
 
     def __init__(self, hidden_layer=512, learning_rate=0.0001, gamma=0.99, max_buffer_size=100000, eval=False, frame_stack=3, target_update_interval=10000, max_episode_steps=1000,
-                 epsilon=0, min_epsilon=0, epsilon_decay=0.995) -> None:
+                 epsilon=0, min_epsilon=0, epsilon_decay=0.995, checkpoint_pool=5) -> None:
 
         self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
         
@@ -64,7 +64,7 @@ class Agent():
 
         self.target_model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=obs.shape, obs_stack=frame_stack).to(self.device)
 
-        self.checkpoint_pool = CheckpointPool(max_size=5)
+        self.checkpoint_pool = CheckpointPool(max_size=checkpoint_pool)
         self.checkpoint_pool.add(self.model, -100)
 
         self.checkpoint_model = None
@@ -375,11 +375,12 @@ class Agent():
                 
                 print(f"Player v bot total: {player_v_bot_total}")
                 player_v_bot_average = player_v_bot_total / (eval_ep_count * 2)
+                
+                self.checkpoint_pool.add(self.model, player_v_bot_average)
 
                 if(player_v_bot_average >= best_avg_score):
                     best_avg_score = player_v_bot_average
                     self.model.save_the_model(filename=f"models/model_best.pt")
-                    self.checkpoint_pool.add(self.model, player_v_bot_average)
                     print(f"Saved new best model - Average score {best_avg_score} against the hard bot")
                 else:
                     print(f"Failed to save new best model. {best_avg_score} higher than {player_v_bot_average}")
