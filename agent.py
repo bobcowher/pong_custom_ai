@@ -1,5 +1,7 @@
+from numpy._core.numeric import roll
 from pygame.event import clear
 import matplotlib.pyplot as plt
+from torch._prims_common import check
 from buffer import ReplayBuffer
 from model import Model
 import torch
@@ -16,7 +18,7 @@ import numpy as np
 from game import Pong
 from collections import deque
 import copy
-from checkpoint import CheckpointPool
+# from checkpoint import CheckpointPool
 import model 
 
 class Agent():
@@ -64,8 +66,10 @@ class Agent():
 
         self.target_model = Model(action_dim=self.env.action_space.n, hidden_dim=hidden_layer, observation_shape=obs.shape, obs_stack=frame_stack).to(self.device)
 
-        self.checkpoint_pool = CheckpointPool(max_size=checkpoint_pool)
-        self.checkpoint_pool.add(self.model, -100)
+        self.checkpoints = deque(maxlen=checkpoint_pool)
+        self.checkpoints.append(self.model)
+        # self.checkpoint_pool = CheckpointPool(max_size=checkpoint_pool)
+        # self.checkpoint_pool.add(self.model, -100)
 
         self.checkpoint_model = None
 
@@ -240,13 +244,13 @@ class Agent():
         player_1_use_checkpoint = False
         player_2_use_checkpoint = True
 
-        best_avg_score = -100
+        rolling_avg_score = 0
 
         for episode in range(episodes):
 
             # Every epsisode, flip flop who's using the older checkpoint model.
             player_1_use_checkpoint, player_2_use_checkpoint = not player_1_use_checkpoint, not player_2_use_checkpoint
-            self.checkpoint_model = self.checkpoint_pool.sample()
+            self.checkpoint_model = random.choice(self.checkpoints)
 
             done = False
             player_1_episode_reward = 0
@@ -335,6 +339,8 @@ class Agent():
                 latest_reward = player_1_episode_reward
                 checkpoint_reward = player_2_episode_reward
 
+            rolling_avg_score = (rolling_avg_score + latest_reward) / 2
+
             writer.add_scalar('Training Score/Player 1 Training', player_1_episode_reward, episode)
             writer.add_scalar('Training Score/Player 2 Training', player_2_episode_reward, episode)
 
@@ -359,36 +365,41 @@ class Agent():
                 print("Model Saved")
                 
                 # print the checkpoint pool every 20 episodes. 
-                self.checkpoint_pool.report()
+                # self.checkpoint_pool.report()
                
                 self.log_header("Eval run complete.")
-                
-            if episode > 0 and (episode % 100 == 0):
-                self.log_header("Checkpoint pool eval run started...")
-                player_v_bot_total = 0 # -100 is lower than the possible starting average. 
-                eval_ep_count = 3
-                
-                for i in range(eval_ep_count):
-                    player_1_score_v_bot, player_2_score_v_bot = self.eval(bot_difficulty="hard")
-                    player_v_bot_total += player_1_score_v_bot
-                    player_v_bot_total += player_2_score_v_bot
-                
-                print(f"Player v bot total: {player_v_bot_total}")
-                player_v_bot_average = player_v_bot_total / (eval_ep_count * 2)
-                
-                self.checkpoint_pool.add(self.model, player_v_bot_average)
 
-                if(player_v_bot_average >= best_avg_score):
-                    best_avg_score = player_v_bot_average
-                    self.model.save_the_model(filename=f"models/model_best.pt")
-                    print(f"Saved new best model - Average score {best_avg_score} against the hard bot")
-                else:
-                    print(f"Failed to save new best model. {best_avg_score} higher than {player_v_bot_average}")
-                
-                self.log_header("Checkpoint pool eval run started...")
+            if episode > 0 and (episode % 100 == 0) and (rolling_avg_score > 0):
+                self.checkpoints.append(self.model)
 
 
-            writer.add_scalar('Stats/Epsilon', self.epsilon, episode)
+
+            # if episode > 0 and (episode % 100 == 0):
+            #     self.log_header("Checkpoint pool eval run started...")
+            #     player_v_bot_total = 0 # -100 is lower than the possible starting average. 
+            #     eval_ep_count = 3
+            #     
+            #     for i in range(eval_ep_count):
+            #         player_1_score_v_bot, player_2_score_v_bot = self.eval(bot_difficulty="hard")
+            #         player_v_bot_total += player_1_score_v_bot
+            #         player_v_bot_total += player_2_score_v_bot
+            #     
+            #     print(f"Player v bot total: {player_v_bot_total}")
+            #     player_v_bot_average = player_v_bot_total / (eval_ep_count * 2)
+            #     
+            #     self.checkpoint_pool.add(self.model, player_v_bot_average)
+            #
+            #     if(player_v_bot_average >= best_avg_score):
+            #         best_avg_score = player_v_bot_average
+            #         self.model.save_the_model(filename=f"models/model_best.pt")
+            #         print(f"Saved new best model - Average score {best_avg_score} against the hard bot")
+            #     else:
+            #         print(f"Failed to save new best model. {best_avg_score} higher than {player_v_bot_average}")
+            #     
+            #     self.log_header("Checkpoint pool eval run started...")
+            #
+            #
+            # writer.add_scalar('Stats/Epsilon', self.epsilon, episode)
 
             if episode > 0 and episode % 500 == 0:
                 print("Strategic amnesia triggered: Resetting epsilon to encourage exploration.")
