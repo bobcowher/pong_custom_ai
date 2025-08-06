@@ -7,14 +7,14 @@ max_episode_steps = 2000
 total_steps = 0
 
 batch_size = 32 
-learning_rate = 0.0001
+learning_rate = 0.00025
 epsilon = 1
 min_epsilon = 0.1
 epsilon_decay = 0.995
 gamma = 0.99
-max_buffer_size = 400000
+max_buffer_size = 100000
 target_update_interval = 100
-checkpoint_pool = 10 
+checkpoint_pool = 5 
 
 hidden_layer = 512 
 
