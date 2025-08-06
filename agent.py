@@ -369,8 +369,11 @@ class Agent():
                
                 self.log_header("Eval run complete.")
 
-            if episode > 0 and (episode % 100 == 0) and (rolling_avg_score > 0):
-                self.checkpoints.append(self.model)
+            if episode > 0 and (episode % 100 == 0):
+                if (rolling_avg_score > 0):
+                    self.checkpoints.append(self.model)
+
+                rolling_avg_score = 0
 
 
 
