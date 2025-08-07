@@ -39,8 +39,10 @@ class Agent():
         self.eval_mode = eval
 
         self.epsilon = epsilon
+        self.checkpoint_epsilon = epsilon
         self.min_epsilon = min_epsilon 
         self.epsilon_decay = epsilon_decay
+        self.checkpoint_epsilon_decay = 0.9999
         
         if self.eval_mode:
             self.model = Model(action_dim=3, hidden_dim=hidden_layer, observation_shape=(frame_stack,84,84), obs_stack=frame_stack).to(self.device)
@@ -153,7 +155,7 @@ class Agent():
             obs = self.flip_obs(obs) 
         
         if(checkpoint_model):
-            if random.random() < self.epsilon and episode < 200:
+            if random.random() < self.checkpoint_epsilon:
                 action = self.env.action_space.sample()
             else:
                 q_values = self.checkpoint_model.forward(obs.unsqueeze(0).to(self.device))[0]
@@ -378,7 +380,7 @@ class Agent():
                 writer.add_scalar('Stats/Rolling Average Score', rolling_avg_score, episode)
                 writer.add_scalar('Stats/Checkpoints', len(self.checkpoints), episode)
                 
-                if (rolling_avg_score > 5) or (episode <= 250):
+                if (rolling_avg_score > 1):
                     self.checkpoints.append(self.model)
 
 
@@ -415,6 +417,9 @@ class Agent():
 
             if self.epsilon > self.min_epsilon:
                 self.epsilon *= self.epsilon_decay
+
+            if self.checkpoint_epsilon > self.min_epsilon:
+                self.checkpoint_epsilon *= self.checkpoint_epsilon_decay
 
             episode_time = time.time() - episode_start_time
 
