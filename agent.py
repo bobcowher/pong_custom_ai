@@ -244,7 +244,7 @@ class Agent():
         player_1_use_checkpoint = False
         player_2_use_checkpoint = True
 
-        rolling_avg_score = 0
+        rolling_avg_buffer = deque(maxlen=100) 
 
         for episode in range(episodes):
 
@@ -339,7 +339,7 @@ class Agent():
                 latest_reward = player_1_episode_reward
                 checkpoint_reward = player_2_episode_reward
 
-            rolling_avg_score = (rolling_avg_score + latest_reward) / 2
+            rolling_avg_buffer.append(latest_reward)
 
             writer.add_scalar('Training Score/Player 1 Training', player_1_episode_reward, episode)
             writer.add_scalar('Training Score/Player 2 Training', player_2_episode_reward, episode)
@@ -369,12 +369,17 @@ class Agent():
                
                 self.log_header("Eval run complete.")
 
-            if episode > 0 and (episode % 100 == 0):
-                if (rolling_avg_score > 0):
+            if episode > 0 and (episode % 50 == 0):
+                rolling_avg_score = sum(rolling_avg_buffer) / len(rolling_avg_buffer)
+
+                # Note, we're not looking for an average that's over 1, we're looking for an average that 
+                # points to the new agent beating the previous agents by at least 5 consistently. 
+                    
+                writer.add_scalar('Stats/Rolling Average Score', rolling_avg_score, episode)
+                writer.add_scalar('Stats/Checkpoints', len(self.checkpoints), episode)
+                
+                if (rolling_avg_score > 5) or (episode <= 250):
                     self.checkpoints.append(self.model)
-
-                rolling_avg_score = 0
-
 
 
             # if episode > 0 and (episode % 100 == 0):
@@ -402,7 +407,7 @@ class Agent():
             #     self.log_header("Checkpoint pool eval run started...")
             #
             #
-            # writer.add_scalar('Stats/Epsilon', self.epsilon, episode)
+            writer.add_scalar('Stats/Epsilon', self.epsilon, episode)
 
             if episode > 0 and episode % 500 == 0:
                 print("Strategic amnesia triggered: Resetting epsilon to encourage exploration.")
