@@ -42,7 +42,7 @@ class Agent():
         self.checkpoint_epsilon = epsilon
         self.min_epsilon = min_epsilon 
         self.epsilon_decay = epsilon_decay
-        self.checkpoint_epsilon_decay = 0.9999
+        self.checkpoint_epsilon_decay = 0.9995
         
         if self.eval_mode:
             self.model = Model(action_dim=3, hidden_dim=hidden_layer, observation_shape=(frame_stack,84,84), obs_stack=frame_stack).to(self.device)
@@ -247,6 +247,7 @@ class Agent():
         player_2_use_checkpoint = True
 
         rolling_avg_buffer = deque(maxlen=100) 
+        checkpoints_committed = 1 # We're just tracking this for stats
 
         for episode in range(episodes):
 
@@ -378,10 +379,11 @@ class Agent():
                 # points to the new agent beating the previous agents by at least 5 consistently. 
                     
                 writer.add_scalar('Stats/Rolling Average Score', rolling_avg_score, episode)
-                writer.add_scalar('Stats/Checkpoints', len(self.checkpoints), episode)
+                writer.add_scalar('Stats/Checkpoints', checkpoints_committed, episode)
                 
                 if (rolling_avg_score > 1):
                     self.checkpoints.append(self.model)
+                    checkpoints_committed += 1
 
 
             # if episode > 0 and (episode % 100 == 0):
@@ -410,6 +412,7 @@ class Agent():
             #
             #
             writer.add_scalar('Stats/Epsilon', self.epsilon, episode)
+            writer.add_scalar('Stats/Checkpoint Epsilon', self.checkpoint_epsilon, episode)
 
             if episode > 0 and episode % 500 == 0:
                 print("Strategic amnesia triggered: Resetting epsilon to encourage exploration.")
