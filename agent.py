@@ -390,10 +390,10 @@ class Agent():
 
             writer.add_scalar('Stats/Epsilon', self.epsilon, episode)
 
-            if episode > 0 and episode % 500 == 0:
-                print("Strategic amnesia triggered: Resetting epsilon to encourage exploration.")
-                self.epsilon = 0.3
-
+            # if episode > 0 and episode % 500 == 0:
+            #     print("Strategic amnesia triggered: Resetting epsilon to encourage exploration.")
+            #     self.epsilon = 0.3
+            #
             if self.epsilon > self.min_epsilon:
                 self.epsilon *= self.epsilon_decay
 
