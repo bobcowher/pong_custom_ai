@@ -273,10 +273,10 @@ class Agent():
 
                 # If player 1 is using the checkpoint model for this run, store transitions from player 2. 
                 # Always store the "live" model's data.
-                # if player_1_use_checkpoint:
-                self.memory.store_transition(self.flip_obs(obs), player_2_action, player_2_reward, self.flip_obs(next_obs), done)
-                # else:
-                self.memory.store_transition(obs, player_1_action, player_1_reward, next_obs, done)
+                if player_1_use_checkpoint:
+                    self.memory.store_transition(self.flip_obs(obs), player_2_action, player_2_reward, self.flip_obs(next_obs), done)
+                else:
+                    self.memory.store_transition(obs, player_1_action, player_1_reward, next_obs, done)
 
                 obs = next_obs                
 
@@ -320,11 +320,6 @@ class Agent():
                     if total_steps % self.target_update_interval == 0:
                         self.target_model.load_state_dict(self.model.state_dict())
             
-                    if total_steps % 1000 == 0:
-                        _, _, rewards, _, _ = self.memory.sample_buffer(16)
-                        print("Sampled Player 1 rewards:", rewards.squeeze().tolist())
-
-
             # Because we bounce between playing player 1 and player 2 with the latest policy, we need to log both the player scores, and
             # the latest/checkpoint scores. Player scores should be close to identical, while the latest/checkpoint scores should take
             # a sawtooth pattern in the logs.
