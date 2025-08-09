@@ -25,13 +25,12 @@ class CheckpointPool:
     # ------------------------------------------------------------ #
 
     def sample(self) -> torch.nn.Module:
-        """Return a random checkpoint, weighted by skill."""
+        """Return a random checkpoint, uniformly sampled."""
         if not self.pool:
             raise RuntimeError("Checkpoint pool empty!")
 
-        scores, models = zip(*self.pool)
-        probs = torch.softmax(torch.tensor(scores, dtype=torch.float32), dim=0).tolist()
-        return random.choices(models, weights=probs, k=1)[0]
+        _, models = zip(*self.pool)
+        return random.choice(models)
 
     def report(self):
 

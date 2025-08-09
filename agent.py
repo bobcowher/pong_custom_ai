@@ -273,10 +273,10 @@ class Agent():
 
                 # If player 1 is using the checkpoint model for this run, store transitions from player 2. 
                 # Always store the "live" model's data.
-                if player_1_use_checkpoint:
-                    self.memory.store_transition(self.flip_obs(obs), player_2_action, player_2_reward, self.flip_obs(next_obs), done)
-                else:
-                    self.memory.store_transition(obs, player_1_action, player_1_reward, next_obs, done)
+                # if player_1_use_checkpoint:
+                self.memory.store_transition(self.flip_obs(obs), player_2_action, player_2_reward, self.flip_obs(next_obs), done)
+                # else:
+                self.memory.store_transition(obs, player_1_action, player_1_reward, next_obs, done)
 
                 obs = next_obs                
 
@@ -393,7 +393,7 @@ class Agent():
             # if episode > 0 and episode % 500 == 0:
             #     print("Strategic amnesia triggered: Resetting epsilon to encourage exploration.")
             #     self.epsilon = 0.3
-            #
+
             if self.epsilon > self.min_epsilon:
                 self.epsilon *= self.epsilon_decay
 
