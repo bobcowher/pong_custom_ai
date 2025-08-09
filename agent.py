@@ -143,7 +143,7 @@ class Agent():
         cv2.imwrite(filename, frame_bgr)
 
 
-    def get_action(self, obs, player=2, checkpoint_model=False, episode=0):
+    def get_action(self, obs, player=2, checkpoint_model=False, episode=0, eval_mode=False):
 
         if(player == 2):
             obs = self.flip_obs(obs) 
@@ -155,7 +155,7 @@ class Agent():
                 q_values = self.checkpoint_model.forward(obs.unsqueeze(0).to(self.device))[0]
                 action = torch.argmax(q_values, dim=-1).item()
         else:
-            if random.random() < self.epsilon:
+            if (random.random() < self.epsilon) and (eval_mode == False):
                 action = self.env.action_space.sample()
             else:
                 q_values = self.model.forward(obs.unsqueeze(0).to(self.device))[0]
@@ -210,10 +210,10 @@ class Agent():
                 episode_steps += 1
 
                 if(player == 0):
-                    action = self.get_action(obs, player=1) 
+                    action = self.get_action(obs, player=1, eval_mode=True) 
                     next_obs, reward, _, done, truncated, info = self.eval_envs[player].step(player_1_action=action)
                 elif(player == 1):
-                    action = self.get_action(obs, player=2) # TODO - Fix this funky naming logic later 
+                    action = self.get_action(obs, player=2, eval_mode=True) # TODO - Fix this funky naming logic later 
                     next_obs, _, reward, done, truncated, info = self.eval_envs[player].step(player_2_action=action)
 
                 obs = self.process_observation(next_obs)
