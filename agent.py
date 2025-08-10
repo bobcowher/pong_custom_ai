@@ -149,7 +149,7 @@ class Agent():
             obs = self.flip_obs(obs) 
         
         if(checkpoint_model):
-            if random.random() < self.epsilon or episode < 200:
+            if random.random() < self.epsilon and episode < 1000:
                 action = self.env.action_space.sample()
             else:
                 q_values = self.checkpoint_model.forward(obs.unsqueeze(0).to(self.device))[0]
