@@ -9,14 +9,14 @@ total_steps = 0
 batch_size = 32 
 learning_rate = 0.0001
 epsilon = 1
-min_epsilon = 0.05
+min_epsilon = 0.15
 epsilon_decay = 0.995
 gamma = 0.99
 max_buffer_size = 200000
 target_update_interval = 10000
-checkpoint_pool = 5 
+checkpoint_pool = 3 
 
-hidden_layer = 512 
+hidden_layer = 756 
 
 # print(observation.shape)
 
